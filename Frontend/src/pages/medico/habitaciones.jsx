@@ -52,7 +52,7 @@ export default function HabitacionesPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-blue-400 to-blue-500 text-white flex flex-col">
+      <aside className="w-64 bg-linear-to-b from-blue-400 to-blue-500 text-white flex flex-col">
         <div className="p-6">
           <h2 className="text-xl font-bold">Hospital System</h2>
           <p className="text-sm text-blue-100 mt-1">Panel Médico</p>
