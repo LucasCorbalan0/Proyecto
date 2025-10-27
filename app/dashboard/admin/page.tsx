@@ -1,7 +1,378 @@
 "use client"
 
 import { useState } from "react"
+import type { ReactNode } from "react"
 import Link from "next/link"
+
+function SectionWrapper({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+        <div className="flex gap-2">
+          <button className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Nuevo</button>
+          <button className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">Exportar</button>
+        </div>
+      </div>
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Buscar..."
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      <div className="border border-gray-200 rounded-lg overflow-hidden">{children}</div>
+    </section>
+  )
+}
+
+function UsuariosView() {
+  const usuarios = [
+    { nombre: "Ana Pérez", email: "ana.perez@hospital.com", rol: "Admin", estado: "Activo" },
+    { nombre: "Carlos Díaz", email: "c.diaz@hospital.com", rol: "Recepción", estado: "Activo" },
+    { nombre: "Lucía Gómez", email: "lucia.g@hospital.com", rol: "Soporte", estado: "Suspendido" },
+  ]
+  return (
+    <SectionWrapper title="Usuarios">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+            <th className="px-4 py-3" />
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {usuarios.map((u, i) => (
+            <tr key={i}>
+              <td className="px-4 py-3 text-gray-800">{u.nombre}</td>
+              <td className="px-4 py-3 text-gray-600">{u.email}</td>
+              <td className="px-4 py-3"><span className="inline-flex px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">{u.rol}</span></td>
+              <td className="px-4 py-3">
+                <span className={`inline-flex px-2 py-1 text-xs rounded ${u.estado === "Activo" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-800"}`}>{u.estado}</span>
+              </td>
+              <td className="px-4 py-3 text-right">
+                <button className="px-3 py-1 border rounded mr-2">Editar</button>
+                <button className="px-3 py-1 border rounded">Eliminar</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </SectionWrapper>
+  )
+}
+
+function MedicosView() {
+  const medicos = [
+    { nombre: "Dr. Juan López", especialidad: "Cardiología", telefono: "+54 11 5555-1111" },
+    { nombre: "Dra. María Ruiz", especialidad: "Neurología", telefono: "+54 11 5555-2222" },
+    { nombre: "Dr. Pedro Silva", especialidad: "Oncología", telefono: "+54 11 5555-3333" },
+  ]
+  return (
+    <SectionWrapper title="Médicos">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {medicos.map((m, i) => (
+          <div key={i} className="p-4 border-b md:border-r">
+            <div className="flex items-center gap-4">
+              <img src="/professional-male-cardiologist-doctor.jpg" alt={m.nombre} className="w-14 h-14 rounded-full object-cover" />
+              <div>
+                <p className="font-semibold text-gray-900">{m.nombre}</p>
+                <p className="text-sm text-gray-600">{m.especialidad}</p>
+                <p className="text-sm text-gray-600">{m.telefono}</p>
+              </div>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button className="px-3 py-1 border rounded">Ver perfil</button>
+              <button className="px-3 py-1 border rounded">Agendar</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </SectionWrapper>
+  )
+}
+
+function EnfermerosView() {
+  const enfermeros = [
+    { nombre: "Enf. Laura Méndez", turno: "Mañana", sector: "UCI" },
+    { nombre: "Enf. Diego Torres", turno: "Tarde", sector: "Clínica" },
+    { nombre: "Enf. Sofía Castro", turno: "Noche", sector: "Emergencias" },
+  ]
+  return (
+    <SectionWrapper title="Enfermeros">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Turno</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sector</th>
+            <th className="px-4 py-3" />
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {enfermeros.map((e, i) => (
+            <tr key={i}>
+              <td className="px-4 py-3 text-gray-800">{e.nombre}</td>
+              <td className="px-4 py-3 text-gray-600">{e.turno}</td>
+              <td className="px-4 py-3 text-gray-600">{e.sector}</td>
+              <td className="px-4 py-3 text-right">
+                <button className="px-3 py-1 border rounded mr-2">Reasignar</button>
+                <button className="px-3 py-1 border rounded">Eliminar</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </SectionWrapper>
+  )
+}
+
+function PacientesView() {
+  const pacientes = [
+    { nombre: "Ernesto Núñez", dni: "23.456.789", obraSocial: "OSDE", estado: "Internado" },
+    { nombre: "Valentina Rey", dni: "31.234.567", obraSocial: "Swiss Medical", estado: "Ambulatorio" },
+    { nombre: "Héctor Ponce", dni: "18.765.432", obraSocial: "Galeno", estado: "Alta" },
+  ]
+  return (
+    <SectionWrapper title="Pacientes">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Obra social</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+            <th className="px-4 py-3" />
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {pacientes.map((p, i) => (
+            <tr key={i}>
+              <td className="px-4 py-3 text-gray-800">{p.nombre}</td>
+              <td className="px-4 py-3 text-gray-600">{p.dni}</td>
+              <td className="px-4 py-3 text-gray-600">{p.obraSocial}</td>
+              <td className="px-4 py-3">
+                <span className={`inline-flex px-2 py-1 text-xs rounded ${p.estado === "Internado" ? "bg-red-100 text-red-700" : p.estado === "Ambulatorio" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>{p.estado}</span>
+              </td>
+              <td className="px-4 py-3 text-right">
+                <button className="px-3 py-1 border rounded mr-2">Ver historia</button>
+                <button className="px-3 py-1 border rounded">Alta</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </SectionWrapper>
+  )
+}
+
+function TurnosView() {
+  const turnos = [
+    { fecha: "2025-11-02", hora: "09:30", paciente: "Ana Pérez", medico: "Dr. López", estado: "Confirmado" },
+    { fecha: "2025-11-02", hora: "10:15", paciente: "Carlos Díaz", medico: "Dra. Ruiz", estado: "Pendiente" },
+    { fecha: "2025-11-02", hora: "11:00", paciente: "Lucía Gómez", medico: "Dr. Silva", estado: "Cancelado" },
+  ]
+  return (
+    <SectionWrapper title="Turnos">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Médico</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+            <th className="px-4 py-3" />
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {turnos.map((t, i) => (
+            <tr key={i}>
+              <td className="px-4 py-3 text-gray-800">{t.fecha}</td>
+              <td className="px-4 py-3 text-gray-600">{t.hora}</td>
+              <td className="px-4 py-3 text-gray-600">{t.paciente}</td>
+              <td className="px-4 py-3 text-gray-600">{t.medico}</td>
+              <td className="px-4 py-3">
+                <span className={`inline-flex px-2 py-1 text-xs rounded ${t.estado === "Confirmado" ? "bg-green-100 text-green-700" : t.estado === "Pendiente" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-700"}`}>{t.estado}</span>
+              </td>
+              <td className="px-4 py-3 text-right">
+                <button className="px-3 py-1 border rounded mr-2">Reprogramar</button>
+                <button className="px-3 py-1 border rounded">Cancelar</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </SectionWrapper>
+  )
+}
+
+function HabitacionesView() {
+  const habitaciones = [
+    { numero: "101", piso: 1, camas: 2, ocupadas: 1, estado: "Disponible" },
+    { numero: "202", piso: 2, camas: 1, ocupadas: 1, estado: "Ocupada" },
+    { numero: "305", piso: 3, camas: 3, ocupadas: 2, estado: "Mantenimiento" },
+  ]
+  return (
+    <SectionWrapper title="Habitaciones">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Número</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Piso</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Camas</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ocupadas</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+            <th className="px-4 py-3" />
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {habitaciones.map((h, i) => (
+            <tr key={i}>
+              <td className="px-4 py-3 text-gray-800">{h.numero}</td>
+              <td className="px-4 py-3 text-gray-600">{h.piso}</td>
+              <td className="px-4 py-3 text-gray-600">{h.camas}</td>
+              <td className="px-4 py-3 text-gray-600">{h.ocupadas}</td>
+              <td className="px-4 py-3">
+                <span className={`inline-flex px-2 py-1 text-xs rounded ${h.estado === "Disponible" ? "bg-green-100 text-green-700" : h.estado === "Ocupada" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-800"}`}>{h.estado}</span>
+              </td>
+              <td className="px-4 py-3 text-right">
+                <button className="px-3 py-1 border rounded mr-2">Asignar</button>
+                <button className="px-3 py-1 border rounded">Liberar</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </SectionWrapper>
+  )
+}
+
+function ConsultasView() {
+  const consultas = [
+    { id: "C-1203", paciente: "Ernesto Núñez", medico: "Dr. López", tipo: "Control", estado: "En curso" },
+    { id: "C-1204", paciente: "Valentina Rey", medico: "Dra. Ruiz", tipo: "Diagnóstico", estado: "Finalizada" },
+    { id: "C-1205", paciente: "Héctor Ponce", medico: "Dr. Silva", tipo: "Prequirúrgica", estado: "Programada" },
+  ]
+  return (
+    <SectionWrapper title="Consultas">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Médico</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+            <th className="px-4 py-3" />
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {consultas.map((c, i) => (
+            <tr key={i}>
+              <td className="px-4 py-3 text-gray-800">{c.id}</td>
+              <td className="px-4 py-3 text-gray-600">{c.paciente}</td>
+              <td className="px-4 py-3 text-gray-600">{c.medico}</td>
+              <td className="px-4 py-3 text-gray-600">{c.tipo}</td>
+              <td className="px-4 py-3">
+                <span className={`inline-flex px-2 py-1 text-xs rounded ${c.estado === "Finalizada" ? "bg-gray-200 text-gray-800" : c.estado === "En curso" ? "bg-blue-100 text-blue-700" : "bg-yellow-100 text-yellow-800"}`}>{c.estado}</span>
+              </td>
+              <td className="px-4 py-3 text-right">
+                <button className="px-3 py-1 border rounded mr-2">Ver detalle</button>
+                <button className="px-3 py-1 border rounded">Actualizar</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </SectionWrapper>
+  )
+}
+
+function EstudiosView() {
+  const estudios = [
+    { id: "E-845", paciente: "Ana Pérez", tipo: "RMN", fecha: "2025-11-03", estado: "Pendiente" },
+    { id: "E-846", paciente: "Carlos Díaz", tipo: "Rayos X", fecha: "2025-11-02", estado: "Completado" },
+    { id: "E-847", paciente: "Lucía Gómez", tipo: "Ecografía", fecha: "2025-11-04", estado: "Programado" },
+  ]
+  return (
+    <SectionWrapper title="Estudios médicos">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+            <th className="px-4 py-3" />
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {estudios.map((e, i) => (
+            <tr key={i}>
+              <td className="px-4 py-3 text-gray-800">{e.id}</td>
+              <td className="px-4 py-3 text-gray-600">{e.paciente}</td>
+              <td className="px-4 py-3 text-gray-600">{e.tipo}</td>
+              <td className="px-4 py-3 text-gray-600">{e.fecha}</td>
+              <td className="px-4 py-3">
+                <span className={`inline-flex px-2 py-1 text-xs rounded ${e.estado === "Completado" ? "bg-green-100 text-green-700" : e.estado === "Pendiente" ? "bg-yellow-100 text-yellow-800" : "bg-blue-100 text-blue-700"}`}>{e.estado}</span>
+              </td>
+              <td className="px-4 py-3 text-right">
+                <button className="px-3 py-1 border rounded mr-2">Ver informe</button>
+                <button className="px-3 py-1 border rounded">Reprogramar</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </SectionWrapper>
+  )
+}
+
+function RecetasView() {
+  const recetas = [
+    { id: "R-502", paciente: "Valentina Rey", medicamento: "Amoxicilina 500mg", dosis: "Cada 8h", estado: "Activa" },
+    { id: "R-503", paciente: "Ernesto Núñez", medicamento: "Ibuprofeno 400mg", dosis: "SOS", estado: "Vencida" },
+    { id: "R-504", paciente: "Héctor Ponce", medicamento: "Omeprazol 20mg", dosis: "Diaria", estado: "Activa" },
+  ]
+  return (
+    <SectionWrapper title="Recetas">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Medicamento</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dosis</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+            <th className="px-4 py-3" />
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {recetas.map((r, i) => (
+            <tr key={i}>
+              <td className="px-4 py-3 text-gray-800">{r.id}</td>
+              <td className="px-4 py-3 text-gray-600">{r.paciente}</td>
+              <td className="px-4 py-3 text-gray-600">{r.medicamento}</td>
+              <td className="px-4 py-3 text-gray-600">{r.dosis}</td>
+              <td className="px-4 py-3">
+                <span className={`inline-flex px-2 py-1 text-xs rounded ${r.estado === "Activa" ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-800"}`}>{r.estado}</span>
+              </td>
+              <td className="px-4 py-3 text-right">
+                <button className="px-3 py-1 border rounded mr-2">Renovar</button>
+                <button className="px-3 py-1 border rounded">Anular</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </SectionWrapper>
+  )
+}
 
 export default function AdminDashboard() {
   const [activeModal, setActiveModal] = useState<string | null>(null)
@@ -173,21 +544,10 @@ export default function AdminDashboard() {
           </button>
 
           <button
-            onClick={() => setActiveSection("configuracion")}
-            className={`w-full flex items-center gap-3 px-6 py-3 hover:bg-blue-700 transition-colors ${
-              activeSection === "configuracion" ? "bg-blue-700" : ""
-            }`}
+            onClick={() => setActiveSection("recetas")}
+            className={`hidden`}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span>Configuración</span>
+            <span />
           </button>
         </nav>
 
@@ -209,8 +569,17 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="flex-1 p-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-8">Bienvenido, Alejandro</h1>
+        {activeSection === "usuarios" && <UsuariosView />}
+        {activeSection === "medicos" && <MedicosView />}
+        {activeSection === "enfermeros" && <EnfermerosView />}
+        {activeSection === "pacientes" && <PacientesView />}
+        {activeSection === "turnos" && <TurnosView />}
+        {activeSection === "habitaciones" && <HabitacionesView />}
+        {activeSection === "consultas" && <ConsultasView />}
+        {activeSection === "estudios" && <EstudiosView />}
+        {activeSection === "recetas" && <RecetasView />}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${activeSection ? "hidden" : ""}`}>
           {/* Gestión de usuarios */}
           <button
             onClick={() => openModal("usuarios")}
