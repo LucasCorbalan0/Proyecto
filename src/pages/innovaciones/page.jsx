@@ -1,8 +1,8 @@
 export default function InnovacionesPage() {
   return (
     <div className="min-h-screen bg-background">
-      <main className="pt-20">
-        <div className="container mx-auto px-6 py-16">
+      <main className="flex-1">
+        <div className="container mx-auto px-6 pt-24 pb-12">
           <div className="text-center mb-16">
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Innovaciones Tecnológicas</h1>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
