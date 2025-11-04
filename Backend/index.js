@@ -1,15 +1,22 @@
 // index.js
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
 
 // Importamos nuestra conexión a la BD
+const { pool } = require('./config/database');
 
-// Importaremos nuestras rutas aquí (más adelante)
-// import authRoutes from './routes/auth.routes.js';
-// import pacientesRoutes from './routes/pacientes.routes.js';
+// Importamos nuestras rutas
+const authRoutes = require('./routes/auth.routes');
 
+// Cargar variables de entorno lo más pronto posible
 dotenv.config();
+
+// Verificar que JWT_SECRET esté definido
+if (!process.env.JWT_SECRET) {
+    console.error('⚠️ ADVERTENCIA: JWT_SECRET no está definido en el archivo .env');
+    process.env.JWT_SECRET = 'clave_secreta_temporal_no_usar_en_produccion';
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001; // Usamos 3001 para no chocar con React (5173)
@@ -19,8 +26,15 @@ app.use(cors());
 app.use(express.json()); 
 
 // --- Rutas ---
-// app.use('/api/auth', authRoutes);
-// app.use('/api/pacientes', pacientesRoutes);
+app.use('/api/auth', authRoutes);
+
+// Middleware para manejo de errores
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    message: err.message || 'Error interno del servidor'
+  });
+});
 
 // Ruta de prueba
 app.get('/api', (req, res) => {

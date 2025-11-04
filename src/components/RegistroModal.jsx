@@ -1,7 +1,7 @@
 // src/components/RegistroModal.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { register } from '../services/auth.service.js';
-import { User, Lock, Mail, FileText, CalendarDays, Phone, Hospital, X } from 'lucide-react';
+import { User, Lock, Mail, FileText, CalendarDays, Phone, Building2, X } from 'lucide-react';
 
 const inputBaseStyle = "w-full pl-4 pr-4 py-3 bg-transparent border border-gray-300 rounded-md text-base text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary";
 const inputWithIconStyle = `${inputBaseStyle} pl-10`;
@@ -18,7 +18,7 @@ export default function RegistroModal({ open, onClose, onSwitchToLogin }) {
     telefono: '',
     nombre_usuario: '',
     password: '',
-    id_rol_sistema: 3,
+    id_rol_sistema: 6, // Rol de paciente
   });
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -45,11 +45,14 @@ export default function RegistroModal({ open, onClose, onSwitchToLogin }) {
     setIsLoading(true);
 
     try {
-      await register(formData);
+      console.log('Enviando datos:', formData);
+      const response = await register(formData);
+      console.log('Respuesta:', response);
       setSuccess('¡Cuenta creada con éxito! Ya podés iniciar sesión.');
       setTimeout(onSwitchToLogin, 2000); 
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al registrarse.');
+      console.error('Error completo:', err);
+      setError(err.response?.data?.message || err.message || 'Error al registrarse.');
     } finally {
       setIsLoading(false);
     }
@@ -61,12 +64,11 @@ export default function RegistroModal({ open, onClose, onSwitchToLogin }) {
   return (
     <dialog 
       ref={dialogRef} 
-      onCancel={onClose} // Se dispara al presionar 'Esc'
-      onClick={onClose}   // Se dispara al hacer click en el fondo (backdrop)
+      onCancel={onClose}
+      onClick={onClose}
       className="bg-transparent backdrop:bg-black/50 p-0 rounded-lg max-w-4xl"
     >
       <div className="bg-background rounded-lg shadow-xl w-full flex overflow-hidden" onClick={onDialogClick}>
-        
         <div className="w-full md:w-1/2 p-8 sm:p-10 flex flex-col justify-center relative">
           <button 
             onClick={onClose} 
@@ -78,7 +80,7 @@ export default function RegistroModal({ open, onClose, onSwitchToLogin }) {
           <div className="mb-6 text-left">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <Hospital className="w-6 h-6 text-primary-foreground" />
+                <Building2 className="w-6 h-6 text-primary-foreground" />
               </div>
               <span className="text-xl font-semibold text-foreground">MediCare Hospital</span>
             </div>
@@ -114,7 +116,7 @@ export default function RegistroModal({ open, onClose, onSwitchToLogin }) {
                 <label htmlFor="dni" className="text-sm font-medium text-gray-700">DNI</label>
                 <div className="relative">
                   <FileText className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-                  <input id="dni" placeholder="Tu número de documento" value={formData.dni} onChange={handleChange} required className={inputWithIconStyle} />
+                  <input id="dni" placeholder="" value={formData.dni} onChange={handleChange} required className={inputWithIconStyle} />
                 </div>
               </div>
               
@@ -122,20 +124,23 @@ export default function RegistroModal({ open, onClose, onSwitchToLogin }) {
                 <label htmlFor="email" className="text-sm font-medium text-gray-700">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-                  <input id="email" type="email" placeholder="tu@correo.com" value={formData.email} onChange={handleChange} required className={inputWithIconStyle} />
+                  <input id="email" type="email" placeholder="" value={formData.email} onChange={handleChange} required className={inputWithIconStyle} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="fecha_nacimiento" className="text-sm font-medium text-gray-700">Fecha de Nacimiento</label>
-                  <input id="fecha_nacimiento" type="date" value={formData.fecha_nacimiento} onChange={handleChange} required className={inputBaseStyle} />
+                  <div className="relative">
+                    <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
+                    <input id="fecha_nacimiento" type="date" value={formData.fecha_nacimiento} onChange={handleChange} required className={inputWithIconStyle} />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="telefono" className="text-sm font-medium text-gray-700">Teléfono</label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-                    <input id="telefono" placeholder="Opcional" value={formData.telefono} onChange={handleChange} className={inputWithIconStyle} />
+                    <input id="telefono" placeholder="" value={formData.telefono} onChange={handleChange} className={inputWithIconStyle} />
                   </div>
                 </div>
               </div>
@@ -146,14 +151,15 @@ export default function RegistroModal({ open, onClose, onSwitchToLogin }) {
                 <label htmlFor="nombre_usuario" className="text-sm font-medium text-gray-700">Nombre de Usuario</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-                  <input id="nombre_usuario" placeholder="Elige tu @usuario" value={formData.nombre_usuario} onChange={handleChange} required className={inputWithIconStyle} />
+                  <input id="nombre_usuario" placeholder="" value={formData.nombre_usuario} onChange={handleChange} required className={inputWithIconStyle} />
                 </div>
               </div>
+
               <div className="space-y-2">
-                <label htmlFor="password-register" className="text-sm font-medium text-gray-700">Contraseña</label>
+                <label htmlFor="password" className="text-sm font-medium text-gray-700">Contraseña</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-                  <input id="password-register" type="password" placeholder="Crea una contraseña segura" value={formData.password} onChange={handleChange} required className={inputWithIconStyle} />
+                  <input id="password" type="password" placeholder="" value={formData.password} onChange={handleChange} required className={inputWithIconStyle} />
                 </div>
               </div>
             </div>

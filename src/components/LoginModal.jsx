@@ -1,11 +1,10 @@
 // src/components/LoginModal.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { login } from '../services/auth.service.js';
-import { User, Lock, Hospital, X } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { User, Lock, Building2, X } from 'lucide-react';
 
-const inputBaseStyle = "w-full pl-10 pr-4 py-3 bg-transparent border border-gray-300 rounded-md text-base text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary";
-const buttonPrimaryStyle = "w-full py-3 px-6 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50";
+const buttonPrimaryStyle = "w-full py-3 px-6 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50";
 const buttonSecondaryStyle = "w-full py-3 px-6 bg-transparent text-gray-700 hover:bg-gray-100 rounded-full text-sm font-medium transition-colors";
 
 export default function LoginModal({ open, onClose, onSwitchToRegister }) {
@@ -13,9 +12,8 @@ export default function LoginModal({ open, onClose, onSwitchToRegister }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
   const dialogRef = useRef(null);
-
   useEffect(() => {
     if (open) {
       dialogRef.current?.showModal();
@@ -32,15 +30,10 @@ export default function LoginModal({ open, onClose, onSwitchToRegister }) {
     try {
       const response = await login(nombre_usuario, password);
       const { token, usuario } = response.data;
-
+      
       localStorage.setItem('token', token);
-
-      if (usuario.rol === 'ADMIN') navigate('/dashboard/admin');
-      else if (usuario.rol === 'MEDICO') navigate('/dashboard/medico');
-      else if (usuario.rol === 'PACIENTE') navigate('/dashboard/paciente');
-      else navigate('/');
-
-      onClose(); 
+      authLogin(usuario);
+      onClose();
     } catch (err) {
       setError(err.response?.data?.message || 'Error al iniciar sesión');
     } finally {
@@ -82,10 +75,10 @@ export default function LoginModal({ open, onClose, onSwitchToRegister }) {
 
           <div className="mb-6 text-left">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <Hospital className="w-6 h-6 text-primary-foreground" />
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Building2 className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl font-semibold text-foreground">MediCare Hospital</span>
+              <span className="text-xl font-semibold text-gray-900">MediCare Hospital</span>
             </div>
             <h2 className="text-3xl font-bold text-gray-900">Bienvenido de vuelta</h2>
             <p className="text-gray-600 mt-2">Accedé a tu panel de gestión.</p>
@@ -102,13 +95,12 @@ export default function LoginModal({ open, onClose, onSwitchToRegister }) {
               <div className="space-y-2">
                 <label htmlFor="username-login" className="text-sm font-medium text-gray-700">Usuario</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
                   <input
                     id="username-login"
                     type="text"
                     value={nombre_usuario}
                     onChange={(e) => setNombreUsuario(e.target.value)}
-                    className={inputBaseStyle}
+                    className="w-full px-4 py-3 bg-transparent border border-gray-300 rounded-md text-base text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Tu nombre de usuario"
                     required
                   />
@@ -118,13 +110,12 @@ export default function LoginModal({ open, onClose, onSwitchToRegister }) {
               <div className="space-y-2">
                 <label htmlFor="password-login" className="text-sm font-medium text-gray-700">Contraseña</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
                   <input
                     id="password-login"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className={inputBaseStyle}
+                    className="w-full px-4 py-3 bg-transparent border border-gray-300 rounded-md text-base text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Tu contraseña"
                     required
                   />
@@ -141,7 +132,7 @@ export default function LoginModal({ open, onClose, onSwitchToRegister }) {
                 onClick={onSwitchToRegister}
                 className={buttonSecondaryStyle}
               >
-                ¿No tenés cuenta? <span className="font-semibold ml-1 text-primary">Registrate</span>
+                ¿No tenés cuenta? <span className="font-semibold ml-1 text-blue-600">Registrate</span>
               </button>
             </div>
           </form>

@@ -1,4 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/auth.context';
+import ProtectedRoute from './components/ProtectedRoute';
 import Header from "./components/header.jsx";
 import Footer from "./components/footer.jsx";
 import Hero from "./components/hero.jsx";
@@ -14,7 +16,7 @@ import AdminDashboard from "./pages/dashboard/admin/page.jsx";
 import MedicoDashboard from "./pages/dashboard/medico/page.jsx";
 import PacienteDashboard from "./pages/dashboard/paciente/page.jsx";
 import HabitacionesPage from "./pages/dashboard/medico/habitaciones/page.jsx";
-import './App.css';
+
 
 function MainLayout({ children }) {
   return (
@@ -28,7 +30,8 @@ function MainLayout({ children }) {
 
 function App() {
   return (
-    <Routes>
+    <AuthProvider>
+      <Routes>
       {/* Rutas principales con Header y Footer */}
       <Route
         path="/"
@@ -71,11 +74,56 @@ function App() {
       />
 
       {/* Rutas del dashboard sin Header ni Footer */}
-      <Route path="/dashboard/admin" element={<AdminDashboard />} />
-      <Route path="/dashboard/medico" element={<MedicoDashboard />} />
-      <Route path="/dashboard/paciente" element={<PacienteDashboard />} />
-      <Route path="/dashboard/medico/habitaciones" element={<HabitacionesPage />} />
+      <Route 
+        path="/dashboard/superadmin" 
+        element={
+          <ProtectedRoute allowedRoles={[1]}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/admin" 
+        element={
+          <ProtectedRoute allowedRoles={[2]}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/recepcionista" 
+        element={
+          <ProtectedRoute allowedRoles={[3]}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/medico" 
+        element={
+          <ProtectedRoute allowedRoles={[4]}>
+            <MedicoDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/enfermero" 
+        element={
+          <ProtectedRoute allowedRoles={[5]}>
+            <MedicoDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/paciente" 
+        element={
+          <ProtectedRoute allowedRoles={[6]}>
+            <PacienteDashboard />
+          </ProtectedRoute>
+        } 
+      />
     </Routes>
+    </AuthProvider>
   );
 }
 

@@ -59,23 +59,23 @@ export default function Services() {
   ]
 
   return (
-    <section id="services" className="py-20 px-6 bg-muted/30">
+    <section id="services" className="py-20 px-6 bg-gray-50">
       <div className="container mx-auto max-w-6xl">
         <div className="text-center space-y-4 mb-16">
-          <h2 className="text-4xl md:text-5xl font-serif font-light text-foreground">Nuestros Servicios</h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-serif font-light text-gray-900">Nuestros Servicios</h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Ofrecemos una amplia gama de servicios médicos con los más altos estándares de calidad
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {services.map((service, index) => (
-            <div key={index} className="bg-card p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-16 h-16 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
+            <div key={index} className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-6">
                 {service.icon}
               </div>
-              <h3 className="text-xl font-semibold text-card-foreground mb-3">{service.title}</h3>
-              <p className="text-muted-foreground leading-relaxed">{service.description}</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">{service.title}</h3>
+              <p className="text-gray-600 leading-relaxed">{service.description}</p>
             </div>
           ))}
         </div>

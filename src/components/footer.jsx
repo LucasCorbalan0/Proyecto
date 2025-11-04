@@ -1,12 +1,12 @@
 export default function Footer() {
   return (
-    <footer className="bg-foreground text-background py-12 px-6">
+    <footer className="bg-gray-900 text-white py-12 px-6">
       <div className="container mx-auto max-w-6xl">
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-background/10 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-background" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -17,31 +17,31 @@ export default function Footer() {
               </div>
               <span className="text-xl font-semibold">MediCare Hospital</span>
             </div>
-            <p className="text-background/70 text-sm leading-relaxed">
+            <p className="text-white/70 text-sm leading-relaxed">
               Comprometidos con tu salud y bienestar desde 1990.
             </p>
           </div>
 
           <div>
             <h3 className="font-semibold mb-4">Servicios</h3>
-            <ul className="space-y-2 text-sm text-background/70">
+            <ul className="space-y-2 text-sm text-white/70">
               <li>
-                <a href="#" className="hover:text-background transition-colors">
+                <a href="#" className="hover:text-white transition-colors">
                   Emergencias
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-background transition-colors">
+                <a href="#" className="hover:text-white transition-colors">
                   Consultas
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-background transition-colors">
+                <a href="#" className="hover:text-white transition-colors">
                   Cirugía
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-background transition-colors">
+                <a href="#" className="hover:text-white transition-colors">
                   Laboratorio
                 </a>
               </li>
@@ -50,19 +50,19 @@ export default function Footer() {
 
           <div>
             <h3 className="font-semibold mb-4">Información</h3>
-            <ul className="space-y-2 text-sm text-background/70">
+            <ul className="space-y-2 text-sm text-white/70">
               <li>
-                <a href="#" className="hover:text-background transition-colors">
+                <a href="#" className="hover:text-white transition-colors">
                   Sobre Nosotros
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-background transition-colors">
+                <a href="#" className="hover:text-white transition-colors">
                   Equipo Médico
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-background transition-colors">
+                <a href="#" className="hover:text-white transition-colors">
                   Instalaciones
                 </a>
               </li>

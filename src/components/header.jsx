@@ -21,12 +21,12 @@ export default function Header() {
 
   return (
     <> {/* Usamos un Fragment para que los modales puedan ser hermanos del header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
         <nav className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -35,26 +35,26 @@ export default function Header() {
                   />
                 </svg>
               </div>
-              <span className="text-xl font-semibold text-foreground">MediCare Hospital</span>
+              <span className="text-xl font-semibold text-gray-900">MediCare Hospital</span>
             </Link>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8">
-              <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
                 Inicio
               </Link>
-              <Link to="/medicos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/medicos" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
                 Médicos
               </Link>
               <Link
                 to="/instalaciones"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Instalaciones
               </Link>
               <Link
                 to="/innovaciones"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Innovaciones
               </Link>
@@ -62,7 +62,7 @@ export default function Header() {
               {/* 4. Botón que abre el modal de login */}
               <button
                 onClick={openLogin}
-                className="px-6 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors"
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors"
               >
                 Iniciar Sesión
               </button>
@@ -85,28 +85,28 @@ export default function Header() {
             <div className="md:hidden pt-4 pb-2 flex flex-col gap-4">
               <Link
                 to="/"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Inicio
               </Link>
               <Link
                 to="/medicos"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Médicos
               </Link>
               <Link
                 to="/instalaciones"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Instalaciones
               </Link>
               <Link
                 to="/innovaciones"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Innovaciones
@@ -118,7 +118,7 @@ export default function Header() {
                   openLogin();
                   setIsMenuOpen(false);
                 }}
-                className="px-6 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors text-left"
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors text-left"
               >
                 Iniciar Sesión
               </button>
