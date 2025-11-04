@@ -16,14 +16,24 @@ import PacienteDashboard from "./pages/dashboard/paciente/page.jsx";
 import HabitacionesPage from "./pages/dashboard/medico/habitaciones/page.jsx";
 import './App.css';
 
-function App() {
+function MainLayout({ children }) {
   return (
     <>
       <Header />
-      <Routes>
-        <Route
-          path="/"
-          element={
+      {children}
+      <Footer />
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Routes>
+      {/* Rutas principales con Header y Footer */}
+      <Route
+        path="/"
+        element={
+          <MainLayout>
             <>
               <Hero />
               <About />
@@ -32,19 +42,40 @@ function App() {
               <Appointment />
               <Contact />
             </>
-          }
-        />
-        <Route path="/medicos" element={<MedicosPage />} />
-        <Route path="/innovaciones" element={<InnovacionesPage />} />
-        <Route path="/instalaciones" element={<InstalacionesPage />} />
+          </MainLayout>
+        }
+      />
+      <Route
+        path="/medicos"
+        element={
+          <MainLayout>
+            <MedicosPage />
+          </MainLayout>
+        }
+      />
+      <Route
+        path="/innovaciones"
+        element={
+          <MainLayout>
+            <InnovacionesPage />
+          </MainLayout>
+        }
+      />
+      <Route
+        path="/instalaciones"
+        element={
+          <MainLayout>
+            <InstalacionesPage />
+          </MainLayout>
+        }
+      />
 
-        <Route path="/dashboard/admin" element={<AdminDashboard />} />
-        <Route path="/dashboard/medico" element={<MedicoDashboard />} />
-        <Route path="/dashboard/paciente" element={<PacienteDashboard />} />
-        <Route path="/dashboard/medico/habitaciones" element={<HabitacionesPage />} />
-      </Routes>
-      <Footer />
-    </>
+      {/* Rutas del dashboard sin Header ni Footer */}
+      <Route path="/dashboard/admin" element={<AdminDashboard />} />
+      <Route path="/dashboard/medico" element={<MedicoDashboard />} />
+      <Route path="/dashboard/paciente" element={<PacienteDashboard />} />
+      <Route path="/dashboard/medico/habitaciones" element={<HabitacionesPage />} />
+    </Routes>
   );
 }
 
