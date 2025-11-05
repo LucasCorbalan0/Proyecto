@@ -7,20 +7,35 @@ const apiClient = axios.create({
   baseURL: 'http://localhost:3001/api', 
 });
 
-// 2. Configuramos un "interceptor"
-// Esta función se ejecutará ANTES de cada petición.
+// Interceptor para añadir el token a las peticiones
 apiClient.interceptors.request.use(
   (config) => {
-    // 3. Busca el token que guardamos en el login
     const token = localStorage.getItem('token');
-
-    // 4. Si el token existe, lo añade a los encabezados
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor para manejar errores en las respuestas
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response) {
+      // Si el token no es válido o ha expirado
+      if (error.response.status === 401) {
+        // Limpiamos el localStorage
+        localStorage.clear();
+        // Redirigimos al login
+        window.location.href = '/';
+      }
+    }
     return Promise.reject(error);
   }
 );

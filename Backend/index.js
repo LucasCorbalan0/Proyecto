@@ -8,6 +8,8 @@ const { pool } = require('./config/database');
 
 // Importamos nuestras rutas
 const authRoutes = require('./routes/auth.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
+const pacienteRoutes = require('./routes/pacienteRoutes');
 
 // Cargar variables de entorno lo más pronto posible
 dotenv.config();
@@ -27,6 +29,14 @@ app.use(express.json());
 
 // --- Rutas ---
 app.use('/api/auth', authRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/pacientes', pacienteRoutes);
+
+// Middleware para loguear las peticiones (ayuda en desarrollo)
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
+  next();
+});
 
 // Middleware para manejo de errores
 app.use((err, req, res, next) => {

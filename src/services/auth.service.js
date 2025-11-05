@@ -2,11 +2,29 @@
 import apiClient from './apiClient.js'; // Importamos nuestro cliente Axios
 
 // Llama a POST /api/auth/login
-export const login = (nombre_usuario, password) => {
-  return apiClient.post('/auth/login', {
+export const login = async (nombre_usuario, password) => {
+  const response = await apiClient.post('/auth/login', {
     nombre_usuario,
     password
   });
+  
+  // Guardamos el token JWT
+  if (response.data.token) {
+    localStorage.setItem('token', response.data.token);
+  }
+  
+  // Guardamos los datos del usuario
+  if (response.data.usuario) {
+    if (response.data.usuario.id_paciente) {
+      localStorage.setItem('id_paciente', response.data.usuario.id_paciente);
+    }
+    localStorage.setItem('nombre', response.data.usuario.nombre);
+    localStorage.setItem('apellido', response.data.usuario.apellido);
+    localStorage.setItem('email', response.data.usuario.email);
+    localStorage.setItem('rol', response.data.usuario.rol);
+  }
+  
+  return response;
 };
 
 // Llama a POST /api/auth/register

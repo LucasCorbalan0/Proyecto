@@ -11,11 +11,12 @@ const login = asyncHandler(async (req, res) => {
         throw new Error('Por favor complete todos los campos');
     }
 
-    // Verificar si el usuario existe y obtener datos de persona
+    // Verificar si el usuario existe y obtener datos de persona y paciente
     const query = `
-        SELECT u.*, p.nombre, p.apellido, p.dni, p.email
+        SELECT u.*, p.nombre, p.apellido, p.dni, p.email, pac.id_paciente
         FROM usuarios u
         JOIN personas p ON u.id_persona = p.id_persona
+        LEFT JOIN pacientes pac ON pac.id_persona = p.id_persona
         WHERE u.nombre_usuario = ?
     `;
     const [rows] = await execute(query, [nombre_usuario]);
@@ -57,7 +58,8 @@ const login = asyncHandler(async (req, res) => {
             rol: usuario.id_rol_sistema,
             nombre: usuario.nombre,
             apellido: usuario.apellido,
-            email: usuario.email
+            email: usuario.email,
+            id_paciente: usuario.id_paciente
         }
     });
 });

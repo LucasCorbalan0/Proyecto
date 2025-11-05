@@ -1,16 +1,9 @@
 import { useState, useEffect } from "react"
-import axios from "axios"
 import { Toaster, toast } from 'react-hot-toast'
 import { jsPDF } from 'jspdf'
 
-// Configurar axios
-const axiosInstance = axios.create({
-  baseURL: 'http://localhost:3001/api', // Ajusta esto según tu configuración
-  timeout: 5000,
-  headers: {
-    'Content-Type': 'application/json',
-  }
-})
+// Importar cliente axios configurado
+import apiClient from '../../../services/apiClient';
 
 import {
   Home,
@@ -58,33 +51,7 @@ export default function PacienteDashboard() {
     }
   }
 
-  const generarPDF = (titulo, contenido) => {
-    const doc = new jsPDF();
-    
-    // Configurar el título
-    doc.setFontSize(18);
-    doc.text(titulo, 20, 20);
-    
-    // Configurar el contenido
-    doc.setFontSize(12);
-    doc.text(contenido, 20, 40);
-    
-    return doc;
-  };
 
-  // Función para generar un PDF de consulta
-  const generarPDFConsulta = (consulta) => {
-    const doc = generarPDF('Detalle de Consulta', [
-      `Fecha: ${consulta.fecha}`,
-      `Médico: ${consulta.medico}`,
-      `Especialidad: ${consulta.especialidad}`,
-      `Motivo: ${consulta.motivo}`,
-      `Diagnóstico: ${consulta.diagnostico}`,
-      `Tratamiento: ${consulta.tratamiento}`
-    ].join('\\n'));
-    
-    return doc.output('blob');
-  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -174,7 +141,13 @@ export default function PacienteDashboard() {
         </nav>
 
         <div className="p-4 border-t border-gray-200">
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+          <button 
+            onClick={() => {
+              localStorage.clear();
+              window.location.href = '/';
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
             <LogOut className="w-5 h-5" />
             <span className="font-medium">Cerrar sesión</span>
           </button>
@@ -187,7 +160,7 @@ export default function PacienteDashboard() {
         <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <User className="w-5 h-5 text-gray-400" />
-            <span className="text-gray-700">Hola, Ana,</span>
+            <span className="text-gray-700">Hola {localStorage.getItem('nombre')}</span>
           </div>
           <div className="flex items-center gap-3">
             <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
@@ -202,96 +175,274 @@ export default function PacienteDashboard() {
         <main className="flex-1 p-8 overflow-y-auto">{renderContent()}</main>
       </div>
     </div>
-  )
+  );
 }
 
 function InicioContent() {
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const idPaciente = localStorage.getItem('id_paciente');
+      const token = localStorage.getItem('token');
+      
+      if (!idPaciente || !token) {
+        throw new Error('No se encontró el ID del paciente o el token');
+      }
+
+      const response = await apiClient.get(`/pacientes/dashboard/${idPaciente}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data) {
+        setDashboardData(response.data);
+        setError(null);
+      } else {
+        throw new Error('No se recibieron datos del servidor');
+      }
+    } catch (err) {
+      console.error('Error al cargar datos del dashboard:', err);
+      if (err.response?.status === 401) {
+        // Error de autenticación - redirigir al login
+        localStorage.clear();
+        window.location.href = '/';
+      } else {
+        toast.error(err.response?.data?.message || 'Error al cargar la información del dashboard');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const handleCancelarTurno = async (idTurno) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No se encontró el token de autenticación');
+      }
+
+      await apiClient.put(`/pacientes/turnos/${idTurno}/cancelar`, null, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      toast.success('Turno cancelado exitosamente');
+      // Recargar los datos del dashboard
+      fetchDashboardData(); // Reutilizamos la función que ya tiene la lógica de auth
+    } catch (err) {
+      console.error('Error al cancelar turno:', err);
+      if (err.response?.status === 401) {
+        localStorage.clear();
+        window.location.href = '/';
+      } else {
+        toast.error('Error al cancelar el turno. Por favor intente nuevamente.');
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) return null;
+
+  const { paciente, proximosTurnos, ultimosEstudios, recetasProximasVencer } = dashboardData;
+
   return (
     <>
-      <h1 className="text-4xl font-bold text-gray-900 mb-8">Hola, Ana.</h1>
+      <h1 className="text-4xl font-bold text-gray-900 mb-8">
+        Hola, {paciente?.nombre || 'Paciente'}.
+      </h1>
+
+      {/* Información Rápida */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <div className="flex items-start gap-3">
+            <Calendar className="w-6 h-6 text-blue-600" />
+            <div>
+              <h3 className="font-semibold text-gray-900">Próximo Turno</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                {proximosTurnos[0] ? (
+                  `${new Date(proximosTurnos[0].fecha).toLocaleDateString()} - ${proximosTurnos[0].hora_inicio}`
+                ) : (
+                  'No hay turnos programados'
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <div className="flex items-start gap-3">
+            <FlaskConical className="w-6 h-6 text-green-600" />
+            <div>
+              <h3 className="font-semibold text-gray-900">Últimos Estudios</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                {ultimosEstudios.length ? 
+                  `${ultimosEstudios.length} resultados disponibles` : 
+                  'No hay estudios recientes'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <div className="flex items-start gap-3">
+            <Pill className="w-6 h-6 text-purple-600" />
+            <div>
+              <h3 className="font-semibold text-gray-900">Recetas Activas</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                {recetasProximasVencer.length ? 
+                  `${recetasProximasVencer.length} recetas vigentes` : 
+                  'No hay recetas activas'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Próximos Turnos Section */}
       <div className="bg-blue-50 rounded-xl p-6 mb-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Próximos Turnos</h2>
         <div className="space-y-4">
-          {/* Turno 1 */}
-          <div className="bg-white rounded-lg p-5 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Mar. 10 / 10:00 AM</p>
-                <h3 className="text-lg font-semibold text-gray-900">Dr. Juan Perez</h3>
-                <p className="text-gray-600">Cardiología</p>
+          {proximosTurnos.length > 0 ? (
+            proximosTurnos.map((turno) => (
+              <div key={turno.id_turno} className="bg-white rounded-lg p-5 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">
+                      {new Date(turno.fecha).toLocaleDateString('es-ES', {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short'
+                      })} / {turno.hora_inicio}
+                    </p>
+                    <h3 className="text-lg font-semibold text-gray-900">Dr. {turno.nombre_medico}</h3>
+                    <p className="text-gray-600">{turno.especialidad}</p>
+                  </div>
+                  <button
+                    onClick={() => handleCancelarTurno(turno.id_turno)}
+                    className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Cancelar Turno
+                  </button>
+                </div>
               </div>
-              <button className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-medium transition-colors">
-                Cancelar Turno
-              </button>
+            ))
+          ) : (
+            <div className="text-center text-gray-600 py-8">
+              No tienes turnos programados
             </div>
-          </div>
-
-          {/* Turno 2 */}
-          <div className="bg-white rounded-lg p-5 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Vie. 12 / 15:30 PM</p>
-                <h3 className="text-lg font-semibold text-gray-900">Dra. Laura García</h3>
-                <p className="text-gray-600">Dermatogía</p>
-              </div>
-              <button className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-medium transition-colors">
-                Cancelar Turno
-              </button>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Solicitar Nuevo Turno Button */}
-        <button className="w-full mt-6 px-6 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-lg">
+        <Link 
+          to="/dashboard/buscar-medicos"
+          className="block w-full mt-6 px-6 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-lg text-center"
+        >
           Solicitar Nuevo Turno
-        </button>
+        </Link>
       </div>
 
       {/* Últimos Resultados Section */}
       <div className="bg-white rounded-xl p-6 border border-gray-200">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Últimos Resultados</h2>
-        <div className="space-y-2">
-          <Link href="#" className="block text-blue-600 hover:text-blue-700 hover:underline transition-colors">
-            Análisis de Sangre - PDF
-          </Link>
-          <Link href="#" className="block text-blue-600 hover:text-blue-700 hover:underline transition-colors">
-            Radiografía - Ver informe
-          </Link>
-        </div>
+        {ultimosEstudios.length > 0 ? (
+          <div className="space-y-2">
+            {ultimosEstudios.map((estudio) => (
+              <div key={estudio.id_estudio} className="flex items-center justify-between">
+                <Link 
+                  href={estudio.ruta_resultado_pdf} 
+                  className="text-blue-600 hover:text-blue-700 hover:underline transition-colors flex items-center gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  {estudio.tipo_estudio}
+                </Link>
+                <span className="text-sm text-gray-600">
+                  {new Date(estudio.fecha_resultado).toLocaleDateString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-gray-600 py-4">
+            No hay resultados disponibles
+          </div>
+        )}
       </div>
     </>
   )
 }
 
 function ConsultasContent() {
-  const consultas = [
-    {
-      fecha: "15 de Marzo, 2025",
-      medico: "Dr. Juan Perez",
-      especialidad: "Cardiología",
-      motivo: "Control de presión arterial",
-      diagnostico: "Hipertensión controlada",
-      tratamiento: "Continuar con medicación actual",
-    },
-    {
-      fecha: "28 de Febrero, 2025",
-      medico: "Dra. Laura García",
-      especialidad: "Dermatología",
-      motivo: "Revisión de lunares",
-      diagnostico: "Lunares benignos",
-      tratamiento: "Control anual recomendado",
-    },
-    {
-      fecha: "10 de Enero, 2025",
-      medico: "Dr. Carlos Mendez",
-      especialidad: "Medicina General",
-      motivo: "Chequeo anual",
-      diagnostico: "Estado de salud general bueno",
-      tratamiento: "Mantener hábitos saludables",
-    },
-  ]
+  const [consultas, setConsultas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchConsultas = async () => {
+      try {
+        const idPaciente = localStorage.getItem('id_paciente');
+        const token = localStorage.getItem('token');
+        
+        if (!idPaciente || !token) {
+          throw new Error('No se encontró el ID del paciente o el token');
+        }
+        
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        const response = await apiClient.get(`/pacientes/consultas/${idPaciente}`);
+        
+        if (!response.data) {
+          throw new Error('No se recibieron datos del servidor');
+        }
+        
+        setConsultas(response.data);
+        setError(null);
+      } catch (err) {
+        console.error('Error al cargar consultas:', err);
+        if (err.response?.status === 401) {
+          // Error de autenticación
+          localStorage.clear();
+          window.location.href = '/';
+        } else {
+          setError(err.response?.data?.message || 'Error al cargar el historial de consultas');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConsultas();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -335,24 +486,39 @@ function ConsultasContent() {
 }
 
 function RecetasContent() {
-  const recetasActivas = [
-    {
-      medicamento: "Enalapril 10mg",
-      medico: "Dr. Juan Perez",
-      dosis: "1 comprimido cada 12 horas",
-      inicio: "15 de Marzo, 2025",
-      vencimiento: "15 de Abril, 2025",
-      renovaciones: 2,
-    },
-    {
-      medicamento: "Omeprazol 20mg",
-      medico: "Dra. María López",
-      dosis: "1 comprimido en ayunas",
-      inicio: "1 de Marzo, 2025",
-      vencimiento: "1 de Junio, 2025",
-      renovaciones: 1,
-    },
-  ]
+  const [recetas, setRecetas] = useState({ activas: [], vencidas: [] });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRecetas = async () => {
+      try {
+        setLoading(true);
+        const idPaciente = localStorage.getItem('id_paciente');
+        if (!idPaciente) {
+          throw new Error('No se encontró el ID del paciente');
+        }
+        
+        const response = await apiClient.get(`/pacientes/recetas/${idPaciente}`);
+        
+        const hoy = new Date();
+        const activas = response.data.data.filter(receta => 
+          new Date(receta.fecha_vencimiento) > hoy
+        );
+        const vencidas = response.data.data.filter(receta => 
+          new Date(receta.fecha_vencimiento) <= hoy
+        );
+        
+        setRecetas({ activas, vencidas });
+      } catch (err) {
+        console.error('Error al cargar recetas:', err);
+        toast.error('Error al cargar las recetas médicas');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecetas();
+  }, []);
 
   return (
     <>
@@ -363,83 +529,100 @@ function RecetasContent() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {recetasActivas.map((receta, index) => (
-          <div key={index} className="bg-white rounded-xl p-6 border border-gray-200">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-1">{receta.medicamento}</h3>
-                <p className="text-gray-600 text-sm">Recetado por {receta.medico}</p>
+      {loading ? (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {recetas.activas.map((receta, index) => (
+            <div key={index} className="bg-white rounded-xl p-6 border border-gray-200">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-1">{receta.medicamento}</h3>
+                  <p className="text-gray-600 text-sm">Recetado por Dr. {receta.nombre_medico} {receta.apellido_medico}</p>
+                </div>
+                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Activa</span>
               </div>
-              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Activa</span>
-            </div>
 
-            <div className="space-y-3 mb-4">
-              <div className="flex items-start gap-2">
-                <Pill className="w-4 h-4 text-gray-400 mt-1" />
-                <div>
-                  <p className="text-sm text-gray-500">Dosis</p>
-                  <p className="text-gray-900">{receta.dosis}</p>
+              <div className="space-y-3 mb-4">
+                <div className="flex items-start gap-2">
+                  <Pill className="w-4 h-4 text-gray-400 mt-1" />
+                  <div>
+                    <p className="text-sm text-gray-500">Dosis</p>
+                    <p className="text-gray-900">{receta.dosis}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Calendar className="w-4 h-4 text-gray-400 mt-1" />
+                  <div>
+                    <p className="text-sm text-gray-500">Período</p>
+                    <p className="text-gray-900">
+                      {new Date(receta.fecha_emision).toLocaleDateString()} - {new Date(receta.fecha_vencimiento).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <RefreshCw className="w-4 h-4 text-gray-400 mt-1" />
+                  <div>
+                    <p className="text-sm text-gray-500">Renovaciones disponibles</p>
+                    <p className="text-gray-900">{receta.renovaciones_disponibles || 0}</p>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-start gap-2">
-                <Calendar className="w-4 h-4 text-gray-400 mt-1" />
-                <div>
-                  <p className="text-sm text-gray-500">Período</p>
-                  <p className="text-gray-900">
-                    {receta.inicio} - {receta.vencimiento}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <RefreshCw className="w-4 h-4 text-gray-400 mt-1" />
-                <div>
-                  <p className="text-sm text-gray-500">Renovaciones disponibles</p>
-                  <p className="text-gray-900">{receta.renovaciones}</p>
-                </div>
-              </div>
-            </div>
 
-            <div className="flex gap-2 pt-4 border-t border-gray-200">
-              <button
-                onClick={() => {
-                  const doc = new jsPDF();
-                  doc.setFontSize(16);
-                  doc.text('Receta Médica', 20, 20);
-                  doc.setFontSize(12);
-                  doc.text(`Medicamento: ${receta.medicamento}`, 20, 35);
-                  doc.text(`Médico: ${receta.medico}`, 20, 45);
-                  doc.text(`Dosis: ${receta.dosis}`, 20, 55);
-                  doc.text(`Inicio: ${receta.inicio}`, 20, 65);
-                  doc.text(`Vencimiento: ${receta.vencimiento}`, 20, 75);
-                  doc.text(`Renovaciones: ${receta.renovaciones}`, 20, 85);
-                  doc.save(`Receta_${receta.medicamento.replace(/\s/g, '_')}.pdf`);
-                  toast.success('PDF de la receta descargado');
-                }}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Descargar PDF
-              </button>
-              <button className="flex-1 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-medium transition-colors">
-                Renovar
-              </button>
+              <div className="flex gap-2 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    const doc = new jsPDF();
+                    doc.setFontSize(16);
+                    doc.text('Receta Médica', 20, 20);
+                    doc.setFontSize(12);
+                    doc.text(`Medicamento: ${receta.medicamento}`, 20, 35);
+                    doc.text(`Médico: Dr. ${receta.nombre_medico} ${receta.apellido_medico}`, 20, 45);
+                    doc.text(`Dosis: ${receta.dosis}`, 20, 55);
+                    doc.text(`Fecha Emisión: ${new Date(receta.fecha_emision).toLocaleDateString()}`, 20, 65);
+                    doc.text(`Vencimiento: ${new Date(receta.fecha_vencimiento).toLocaleDateString()}`, 20, 75);
+                    doc.text(`Renovaciones disponibles: ${receta.renovaciones_disponibles || 0}`, 20, 85);
+                    doc.save(`Receta_${receta.medicamento.replace(/\s/g, '_')}.pdf`);
+                    toast.success('PDF de la receta descargado');
+                  }}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Descargar PDF
+                </button>
+                {receta.renovaciones_disponibles > 0 && (
+                  <button className="flex-1 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-medium transition-colors">
+                    Renovar
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <div className="mt-8">
         <h2 className="text-2xl font-semibold text-gray-900 mb-4">Recetas Vencidas</h2>
-        <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-gray-400 mt-1" />
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-1">Crema Hidrocortisona 1%</h3>
-              <p className="text-sm text-gray-600 mb-2">Recetado por Dra. Laura García</p>
-              <p className="text-sm text-gray-500">Vencida el 14 de Marzo, 2025</p>
+        <div className="space-y-4">
+          {recetas.vencidas.map((receta, index) => (
+            <div key={index} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-gray-400 mt-1" />
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">{receta.medicamento}</h3>
+                  <p className="text-sm text-gray-600 mb-2">Recetado por Dr. {receta.nombre_medico} {receta.apellido_medico}</p>
+                  <p className="text-sm text-gray-500">Vencida el {new Date(receta.fecha_vencimiento).toLocaleDateString()}</p>
+                </div>
+              </div>
             </div>
-          </div>
+          ))}
+          {recetas.vencidas.length === 0 && (
+            <div className="text-center text-gray-500 py-4">
+              No hay recetas vencidas
+            </div>
+          )}
         </div>
       </div>
     </>
@@ -447,60 +630,69 @@ function RecetasContent() {
 }
 
 function EstudiosContent() {
-  const estudiosDisponibles = [
-    {
-      tipo: "Análisis de Sangre Completo",
-      fecha: "20 de Marzo, 2025",
-      medico: "Dr. Juan Perez",
-      estado: "Disponible",
-    },
-    {
-      tipo: "Radiografía de Tórax",
-      fecha: "5 de Marzo, 2025",
-      medico: "Dr. Carlos Mendez",
-      estado: "Disponible",
-    },
-  ]
+  const [estudios, setEstudios] = useState({ disponibles: [], pendientes: [] });
+  const [loading, setLoading] = useState(true);
 
-  const estudiosPendientes = [
-    {
-      tipo: "Ecografía Abdominal",
-      fechaSolicitada: "22 de Marzo, 2025",
-      medico: "Dra. María López",
-      estado: "Pendiente",
-    },
-  ]
-
-    // Función para descargar todos los estudios en un solo PDF
-    const handleDescargarTodos = () => {
-      if (!estudiosDisponibles.length) {
-        toast.error('No hay estudios disponibles para descargar');
-        return;
-      }
-      const doc = new jsPDF();
-      doc.setFontSize(18);
-      doc.text('Estudios Médicos', 20, 20);
-      let y = 40;
-      estudiosDisponibles.forEach((estudio, idx) => {
-        doc.setFontSize(14);
-        doc.text(`${idx + 1}. ${estudio.tipo}`, 20, y);
-        y += 8;
-        doc.setFontSize(11);
-        doc.text(`Fecha: ${estudio.fecha}`, 25, y);
-        y += 6;
-        doc.text(`Médico: ${estudio.medico}`, 25, y);
-        y += 6;
-        doc.text(`Estado: ${estudio.estado}`, 25, y);
-        y += 10;
-        // Salto de página si se pasa del límite
-        if (y > 270) {
-          doc.addPage();
-          y = 20;
+  useEffect(() => {
+    const fetchEstudios = async () => {
+      try {
+        setLoading(true);
+        const idPaciente = localStorage.getItem('id_paciente');
+        if (!idPaciente) {
+          throw new Error('No se encontró el ID del paciente');
         }
-      });
-      doc.save('Estudios_Medicos.pdf');
-      toast.success('PDF de estudios descargado');
+        
+        const response = await apiClient.get(`/pacientes/estudios/${idPaciente}`);
+        
+        // Separar estudios disponibles y pendientes
+        const disponibles = response.data.data.filter(estudio => 
+          estudio.estado === 'Completado' || estudio.estado === 'Resultado Disponible'
+        );
+        const pendientes = response.data.data.filter(estudio => 
+          estudio.estado === 'Pendiente' || estudio.estado === 'En Proceso'
+        );
+        
+        setEstudios({ disponibles, pendientes });
+      } catch (err) {
+        console.error('Error al cargar estudios:', err);
+        toast.error('Error al cargar los estudios médicos');
+      } finally {
+        setLoading(false);
+      }
     };
+    fetchEstudios();
+  }, []);
+
+  // Función para descargar todos los estudios en un solo PDF
+  const handleDescargarTodos = () => {
+    if (!estudios.disponibles.length) {
+      toast.error('No hay estudios disponibles para descargar');
+      return;
+    }
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Estudios Médicos', 20, 20);
+    let y = 40;
+    estudios.disponibles.forEach((estudio, idx) => {
+      doc.setFontSize(14);
+      doc.text(`${idx + 1}. ${estudio.tipo_estudio}`, 20, y);
+      y += 8;
+      doc.setFontSize(11);
+      doc.text(`Fecha: ${new Date(estudio.fecha_resultado).toLocaleDateString()}`, 25, y);
+      y += 6;
+      doc.text(`Médico: Dr. ${estudio.nombre_medico} ${estudio.apellido_medico}`, 25, y);
+      y += 6;
+      doc.text(`Estado: ${estudio.estado}`, 25, y);
+      y += 10;
+      // Salto de página si se pasa del límite
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+    });
+    doc.save('Estudios_Medicos.pdf');
+    toast.success('PDF de estudios descargado');
+  };
 
   return (
     <>
@@ -516,98 +708,205 @@ function EstudiosContent() {
           </button>
         </div>
 
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Resultados Disponibles</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {estudiosDisponibles.map((estudio, index) => (
-            <div key={index} className="bg-white rounded-xl p-6 border border-gray-200">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-6 h-6 text-green-600 mt-1" />
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">{estudio.tipo}</h3>
-                    <p className="text-sm text-gray-600">Solicitado por {estudio.medico}</p>
-                    <p className="text-sm text-gray-500 mt-1">{estudio.fecha}</p>
+      {loading ? (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <>
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Resultados Disponibles</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {estudios.disponibles.map((estudio, index) => (
+                <div key={index} className="bg-white rounded-xl p-6 border border-gray-200">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="w-6 h-6 text-green-600 mt-1" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">{estudio.tipo_estudio}</h3>
+                        <p className="text-sm text-gray-600">Solicitado por Dr. {estudio.nombre_medico} {estudio.apellido_medico}</p>
+                        <p className="text-sm text-gray-500 mt-1">{new Date(estudio.fecha_resultado).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      // Aquí deberíamos hacer una petición para obtener el PDF real del estudio
+                      // Por ahora generamos uno de ejemplo
+                      const doc = new jsPDF();
+                      doc.setFontSize(16);
+                      doc.text('Estudio Médico', 20, 20);
+                      doc.setFontSize(12);
+                      doc.text(`Tipo: ${estudio.tipo_estudio}`, 20, 35);
+                      doc.text(`Fecha: ${new Date(estudio.fecha_resultado).toLocaleDateString()}`, 20, 45);
+                      doc.text(`Médico: Dr. ${estudio.nombre_medico} ${estudio.apellido_medico}`, 20, 55);
+                      doc.text(`Estado: ${estudio.estado}`, 20, 65);
+                      doc.save(`Estudio_${estudio.tipo_estudio.replace(/\s/g, '_')}.pdf`);
+                      toast.success('PDF del estudio descargado');
+                    }}
+                    className="w-full px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Descargar PDF
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Estudios Pendientes</h2>
+            <div className="space-y-4">
+              {estudios.pendientes.map((estudio, index) => (
+                <div key={index} className="bg-yellow-50 rounded-xl p-6 border border-yellow-200">
+                  <div className="flex items-start gap-3">
+                    <Clock className="w-6 h-6 text-yellow-600 mt-1" />
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">{estudio.tipo_estudio}</h3>
+                      <p className="text-sm text-gray-600">Solicitado por Dr. {estudio.nombre_medico} {estudio.apellido_medico}</p>
+                      <p className="text-sm text-gray-500 mt-1">Fecha de solicitud: {new Date(estudio.fecha_solicitud).toLocaleDateString()}</p>
+                      <p className="text-sm text-yellow-700 mt-2 font-medium">
+                        {estudio.estado === 'Pendiente' ? 'Pendiente de realización - Coordinar turno' : 'En proceso'}
+                      </p>
+                    </div>
+                    {estudio.estado === 'Pendiente' && (
+                      <button className="px-4 py-2 bg-yellow-600 text-white hover:bg-yellow-700 rounded-lg text-sm font-medium transition-colors">
+                        Agendar
+                      </button>
+                    )}
                   </div>
                 </div>
-              </div>
-              <button
-                onClick={() => {
-                  const doc = new jsPDF();
-                  doc.setFontSize(16);
-                  doc.text('Estudio Médico', 20, 20);
-                  doc.setFontSize(12);
-                  doc.text(`Tipo: ${estudio.tipo}`, 20, 35);
-                  doc.text(`Fecha: ${estudio.fecha}`, 20, 45);
-                  doc.text(`Médico: ${estudio.medico}`, 20, 55);
-                  doc.text(`Estado: ${estudio.estado}`, 20, 65);
-                  doc.save(`Estudio_${estudio.tipo.replace(/\s/g, '_')}.pdf`);
-                  toast.success('PDF del estudio descargado');
-                }}
-                className="w-full px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Descargar PDF
-              </button>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Estudios Pendientes</h2>
-        <div className="space-y-4">
-          {estudiosPendientes.map((estudio, index) => (
-            <div key={index} className="bg-yellow-50 rounded-xl p-6 border border-yellow-200">
-              <div className="flex items-start gap-3">
-                <Clock className="w-6 h-6 text-yellow-600 mt-1" />
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{estudio.tipo}</h3>
-                  <p className="text-sm text-gray-600">Solicitado por {estudio.medico}</p>
-                  <p className="text-sm text-gray-500 mt-1">Fecha de solicitud: {estudio.fechaSolicitada}</p>
-                  <p className="text-sm text-yellow-700 mt-2 font-medium">Pendiente de realización - Coordinar turno</p>
-                </div>
-                <button className="px-4 py-2 bg-yellow-600 text-white hover:bg-yellow-700 rounded-lg text-sm font-medium transition-colors">
-                  Agendar
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
     </>
   )
 }
 
 function CuentaContent() {
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [datosPersonales, setDatosPersonales] = useState({
-    nombre: "Ana María González",
-    fechaNacimiento: "1985-05-15",
-    dni: "35456789",
-    obraSocial: "OSDE 310",
-    email: "ana.gonzalez@email.com",
-    telefono: "+54 11 4567-8900",
-    direccion: "Av. Corrientes 1234, CABA, Buenos Aires"
+    nombre: localStorage.getItem('nombre') || '',
+    apellido: localStorage.getItem('apellido') || '',
+    email: localStorage.getItem('email') || '',
+    fechaNacimiento: '',
+    dni: '',
+    obraSocial: '',
+    telefono: '',
+    direccion: '',
+    // Historia clínica
+    grupoSanguineo: '',
+    alergias: '',
+    condicionesCronicas: '',
+    medicacionActual: '',
+    antecedentesQuirurgicos: '',
+    // Contacto de emergencia
+    contactoEmergenciaNombre: '',
+    contactoEmergenciaRelacion: '',
+    contactoEmergenciaTelefono: ''
   });
-  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchDatosPersonales = async () => {
+      try {
+        setLoading(true);
+        const idPaciente = localStorage.getItem('id_paciente');
+        const token = localStorage.getItem('token');
+        
+        if (!idPaciente || !token) {
+          throw new Error('No se encontró el ID del paciente o el token de autenticación');
+        }
+        
+        // Primero obtenemos los datos básicos del paciente
+        const responsePaciente = await apiClient.get(`/pacientes/${idPaciente}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        // Luego obtenemos la historia clínica
+        const responseHistoria = await apiClient.get(`/pacientes/${idPaciente}/historia-clinica`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (responsePaciente.data && responseHistoria.data) {
+          const datosActualizados = {
+            nombre: responsePaciente.data.nombre,
+            apellido: responsePaciente.data.apellido,
+            email: responsePaciente.data.email,
+            dni: responsePaciente.data.dni,
+            fechaNacimiento: responsePaciente.data.fecha_nacimiento,
+            obraSocial: responsePaciente.data.obra_social,
+            telefono: responsePaciente.data.telefono,
+            direccion: responsePaciente.data.direccion,
+            // Datos de historia clínica
+            grupoSanguineo: responseHistoria.data.grupo_sanguineo,
+            alergias: responseHistoria.data.alergias,
+            condicionesCronicas: responseHistoria.data.condiciones_cronicas,
+            medicacionActual: responseHistoria.data.medicacion_actual,
+            antecedentesQuirurgicos: responseHistoria.data.antecedentes_quirurgicos
+          };
+          
+          setDatosPersonales(datosActualizados);
+          setError(null);
+        }
+      } catch (err) {
+        console.error('Error al cargar datos personales:', err);
+        toast.error('Error al cargar los datos personales');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDatosPersonales();
+  }, []);
 
   const handleSave = async () => {
     try {
       setLoading(true);
-      await api.actualizarDatosPersonales("PATIENT_ID", datosPersonales);
+      const idPaciente = localStorage.getItem('id_paciente');
+      const token = localStorage.getItem('token');
+      if (!idPaciente || !token) {
+        throw new Error('No se encontró el ID del paciente o el token');
+      }
+      await apiClient.put(`/pacientes/datos/${idPaciente}`, datosPersonales, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       setIsEditing(false);
       toast.success("Datos actualizados correctamente");
-    } catch (error) {
+    } catch (err) {
+      console.error('Error al actualizar datos:', err);
       toast.error("Error al actualizar los datos");
     } finally {
       setLoading(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <>
+    <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Mi Cuenta</h1>
+
+      {error && (
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Información Personal */}
@@ -642,32 +941,42 @@ function CuentaContent() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="text-sm text-gray-500 mb-1 block">Nombre Completo</label>
-              <p className="text-gray-900 font-medium">Ana María González</p>
+              <label className="text-sm text-gray-500 mb-1 block">Nombre</label>
+              <p className="text-gray-900 font-medium">{datosPersonales.nombre}</p>
             </div>
             <div>
-              <label className="text-sm text-gray-500 mb-1 block">Fecha de Nacimiento</label>
-              <p className="text-gray-900 font-medium">15 de Mayo, 1985</p>
+              <label className="text-sm text-gray-500 mb-1 block">Apellido</label>
+              <p className="text-gray-900 font-medium">{datosPersonales.apellido}</p>
             </div>
             <div>
               <label className="text-sm text-gray-500 mb-1 block">DNI</label>
-              <p className="text-gray-900 font-medium">35.456.789</p>
+              <p className="text-gray-900 font-medium">{datosPersonales.dni || "No especificado"}</p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500 mb-1 block">Fecha de Nacimiento</label>
+              <p className="text-gray-900 font-medium">
+                {datosPersonales.fechaNacimiento ? new Date(datosPersonales.fechaNacimiento).toLocaleDateString() : "No especificado"}
+              </p>
             </div>
             <div>
               <label className="text-sm text-gray-500 mb-1 block">Obra Social</label>
-              <p className="text-gray-900 font-medium">OSDE 310</p>
+              <p className="text-gray-900 font-medium">{datosPersonales.obraSocial || "No especificado"}</p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500 mb-1 block">Nº de Afiliado</label>
+              <p className="text-gray-900 font-medium">{datosPersonales.numeroAfiliado || "No especificado"}</p>
             </div>
             <div>
               <label className="text-sm text-gray-500 mb-1 block">Email</label>
-              <p className="text-gray-900 font-medium">ana.gonzalez@email.com</p>
+              <p className="text-gray-900 font-medium">{datosPersonales.email || "No especificado"}</p>
             </div>
             <div>
               <label className="text-sm text-gray-500 mb-1 block">Teléfono</label>
-              <p className="text-gray-900 font-medium">+54 11 4567-8900</p>
+              <p className="text-gray-900 font-medium">{datosPersonales.telefono || "No especificado"}</p>
             </div>
             <div className="md:col-span-2">
               <label className="text-sm text-gray-500 mb-1 block">Dirección</label>
-              <p className="text-gray-900 font-medium">Av. Corrientes 1234, CABA, Buenos Aires</p>
+              <p className="text-gray-900 font-medium">{datosPersonales.direccion || "No especificado"}</p>
             </div>
           </div>
         </div>
@@ -728,76 +1037,37 @@ function CuentaContent() {
           </button>
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
-// Datos de ejemplo para desarrollo
-const MOCK_DATA = {
-  especialidades: [
-    { id: '1', nombre: 'Cardiología' },
-    { id: '2', nombre: 'Dermatología' },
-    { id: '3', nombre: 'Traumatología' },
-    { id: '4', nombre: 'Pediatría' },
-  ],
-  medicos: [
-    {
-      id: '1',
-      nombre: 'Dr. Juan Pérez',
-      especialidad: 'Cardiología',
-      experiencia: 15,
-      matricula: '12345',
-    },
-    {
-      id: '2',
-      nombre: 'Dra. María López',
-      especialidad: 'Dermatología',
-      experiencia: 10,
-      matricula: '12346',
-    },
-  ],
-  horarios: [
-    { fecha: '2025-11-04', hora: '09:00', disponible: true },
-    { fecha: '2025-11-04', hora: '10:00', disponible: true },
-    { fecha: '2025-11-04', hora: '11:00', disponible: false },
-    { fecha: '2025-11-05', hora: '09:00', disponible: true },
-  ]
-}
 
-// Función auxiliar para descargar archivos
-const downloadFile = (blob, fileName) => {
-  try {
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', fileName);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-    toast.success('Archivo descargado correctamente');
-  } catch (error) {
-    console.error('Error al descargar archivo:', error);
-    toast.error('Error al descargar el archivo');
-  }
-};
+
+
 
 // Funciones de API para el dashboard de pacientes
 const api = {
   // RF-06: Búsqueda de médicos y gestión de turnos
   getEspecialidades: async () => {
     try {
-      const response = await axiosInstance.get('/especialidades')
-      return response.data
+      console.log('Obteniendo especialidades...');
+      const response = await apiClient.get('/especialidades');
+      console.log('Respuesta especialidades:', response.data);
+      return response.data;
     } catch (error) {
-      console.error('Error al obtener especialidades:', error)
-      throw error
+      console.error('Error al obtener especialidades:', error);
+      if (error.response?.status === 401) {
+        // Error de autenticación
+        localStorage.clear();
+        window.location.href = '/';
+      }
+      throw error;
     }
   },
 
   getMedicos: async (especialidad = '', nombre = '') => {
     try {
-      const response = await axiosInstance.get('/medicos', {
+      const response = await apiClient.get('/medicos', {
         params: { especialidad, nombre }
       })
       return response.data
@@ -809,7 +1079,7 @@ const api = {
 
   getDisponibilidadMedico: async (medicoId, fecha) => {
     try {
-      const response = await axiosInstance.get(`/disponibilidad_medicos/${medicoId}`, {
+      const response = await apiClient.get(`/disponibilidad_medicos/${medicoId}`, {
         params: { fecha }
       })
       return response.data
@@ -822,7 +1092,7 @@ const api = {
   // RF-06: Reserva de turnos
   reservarTurno: async (medicoId, fecha, hora, pacienteId) => {
     try {
-      const response = await axiosInstance.post('/turnos', {
+      const response = await apiClient.post('/turnos', {
         medico_id: medicoId,
         fecha,
         hora,
@@ -839,7 +1109,7 @@ const api = {
   // RF-07: Gestión de turnos del paciente
   getTurnosPaciente: async (pacienteId) => {
     try {
-      const response = await axiosInstance.get(`/turnos/paciente/${pacienteId}`, {
+      const response = await apiClient.get(`/turnos/paciente/${pacienteId}`, {
         params: { estado: ['Reservado', 'En Espera'] }
       })
       return response.data
@@ -851,7 +1121,7 @@ const api = {
 
   cancelarTurno: async (turnoId) => {
     try {
-      const response = await axiosInstance.put(`/turnos/${turnoId}`, {
+      const response = await apiClient.put(`/turnos/${turnoId}`, {
         estado: 'Cancelado'
       })
       return response.data
@@ -864,7 +1134,7 @@ const api = {
   // RF-08: Recetas electrónicas
   getRecetasActivas: async (pacienteId) => {
     try {
-      const response = await axiosInstance.get(`/recetas/paciente/${pacienteId}`, {
+      const response = await apiClient.get(`/recetas/paciente/${pacienteId}`, {
         params: { estado: 'Activa' }
       })
       return response.data
@@ -876,7 +1146,7 @@ const api = {
 
   getDetalleReceta: async (recetaId) => {
     try {
-      const response = await axiosInstance.get(`/recetas/${recetaId}/detalle`)
+      const response = await apiClient.get(`/recetas/${recetaId}/detalle`)
       return response.data
     } catch (error) {
       console.error('Error al obtener detalle de receta:', error)
@@ -887,7 +1157,7 @@ const api = {
   // RF-09: Estudios médicos
   getEstudiosMedicos: async (pacienteId) => {
     try {
-      const response = await axiosInstance.get(`/estudiosmedicos/paciente/${pacienteId}`)
+      const response = await apiClient.get(`/estudiosmedicos/paciente/${pacienteId}`)
       return response.data
     } catch (error) {
       console.error('Error al obtener estudios médicos:', error)
@@ -897,7 +1167,7 @@ const api = {
 
   getInformeEstudio: async (estudioId) => {
     try {
-      const response = await axiosInstance.get(`/estudiosmedicos/${estudioId}/informe`, {
+      const response = await apiClient.get(`/estudiosmedicos/${estudioId}/informe`, {
         responseType: 'blob' // Para descargar archivos
       })
       return response.data
@@ -910,7 +1180,7 @@ const api = {
   // RF-10 y RF-11: Facturación y pagos
   getResumenFacturacion: async (pacienteId) => {
     try {
-      const response = await axiosInstance.get(`/facturacion/paciente/${pacienteId}/resumen`)
+      const response = await apiClient.get(`/facturacion/paciente/${pacienteId}/resumen`)
       return response.data
     } catch (error) {
       console.error('Error al obtener resumen de facturación:', error)
@@ -920,7 +1190,7 @@ const api = {
 
   getDetalleFacturacion: async (facturaId) => {
     try {
-      const response = await axiosInstance.get(`/facturacion/${facturaId}/detalle`)
+      const response = await apiClient.get(`/facturacion/${facturaId}/detalle`)
       return response.data
     } catch (error) {
       console.error('Error al obtener detalle de facturación:', error)
@@ -930,7 +1200,7 @@ const api = {
 
   getHistorialPagos: async (pacienteId) => {
     try {
-      const response = await axiosInstance.get(`/pagos/paciente/${pacienteId}`)
+      const response = await apiClient.get(`/pagos/paciente/${pacienteId}`)
       return response.data
     } catch (error) {
       console.error('Error al obtener historial de pagos:', error)
@@ -941,7 +1211,7 @@ const api = {
   // RF-12: Gestión de datos personales
   getDatosPersonales: async (pacienteId) => {
     try {
-      const response = await axiosInstance.get(`/personas/${pacienteId}`)
+      const response = await apiClient.get(`/personas/${pacienteId}`)
       return response.data
     } catch (error) {
       console.error('Error al obtener datos personales:', error)
@@ -951,7 +1221,7 @@ const api = {
 
   actualizarDatosPersonales: async (pacienteId, datos) => {
     try {
-      const response = await axiosInstance.put(`/personas/${pacienteId}`, datos)
+      const response = await apiClient.put(`/personas/${pacienteId}`, datos)
       return response.data
     } catch (error) {
       console.error('Error al actualizar datos personales:', error)
@@ -963,7 +1233,6 @@ const api = {
 
 function BuscarMedicosContent() {
   const [selectedSpecialty, setSelectedSpecialty] = useState("")
-  const [searchTerm, setSearchTerm] = useState("")
   const [especialidades, setEspecialidades] = useState([])
   const [medicos, setMedicos] = useState([])
   const [selectedDoctor, setSelectedDoctor] = useState(null)
@@ -1005,7 +1274,7 @@ function BuscarMedicosContent() {
       try {
         setLoading(true)
         const especialidadNombre = especialidades.find(e => e.id === selectedSpecialty)?.nombre || ''
-        const data = await api.getMedicos(especialidadNombre, searchTerm)
+        const data = await api.getMedicos(especialidadNombre, '')
         console.log('Médicos cargados:', data)
         setMedicos(data)
         setError(null) // Limpiar errores previos
@@ -1018,13 +1287,8 @@ function BuscarMedicosContent() {
       }
     }
 
-    // Usar un debounce para la búsqueda por nombre
-    const timeoutId = setTimeout(() => {
-      loadMedicos()
-    }, 300)
-
-    return () => clearTimeout(timeoutId)
-  }, [selectedSpecialty, searchTerm, especialidades])
+    loadMedicos()
+  }, [selectedSpecialty, especialidades])
 
   // Cargar horarios disponibles de un médico
   const loadHorarios = async (medicoId) => {
@@ -1230,44 +1494,56 @@ function BuscarMedicosContent() {
 }
 
 function FacturacionContent() {
-  const facturasPendientes = [
-    {
-      numero: "FAC-2025-0342",
-      fecha: "20 de Marzo, 2025",
-      concepto: "Consulta Cardiología",
-      monto: 8500,
-      estado: "Pendiente",
-    },
-  ]
+  const [facturas, setFacturas] = useState({ pendientes: [], historial: [] });
+  const [loading, setLoading] = useState(true);
 
-  const facturasHistorial = [
-    {
-      numero: "FAC-2025-0298",
-      fecha: "28 de Febrero, 2025",
-      concepto: "Consulta Dermatología",
-      monto: 7500,
-      estado: "Pagada",
-      metodoPago: "Tarjeta de Crédito",
-    },
-    {
-      numero: "FAC-2025-0156",
-      fecha: "10 de Enero, 2025",
-      concepto: "Chequeo Anual",
-      monto: 12000,
-      estado: "Pagada",
-      metodoPago: "Obra Social",
-    },
-  ]
+  useEffect(() => {
+    const fetchFacturas = async () => {
+      try {
+        const idPaciente = localStorage.getItem('id_paciente');
+        const token = localStorage.getItem('token');
+        
+        if (!idPaciente || !token) {
+          throw new Error('No se encontró el ID del paciente o el token');
+        }
+
+        const response = await apiClient.get(`/pacientes/facturas/${idPaciente}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        // Separar facturas pendientes y pagadas
+        const pendientes = response.data.filter(f => f.estado === 'Pendiente');
+        const historial = response.data.filter(f => f.estado === 'Pagada');
+        
+        setFacturas({ pendientes, historial });
+      } catch (err) {
+        console.error('Error al cargar facturas:', err);
+        toast.error('Error al cargar la información de facturación');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFacturas();
+  }, []);
 
   return (
     <>
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Facturación y Pagos</h1>
 
-      {/* Facturas Pendientes */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Facturas Pendientes</h2>
-        <div className="space-y-4">
-          {facturasPendientes.map((factura, index) => (
+      {loading ? (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <>
+          {/* Facturas Pendientes */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Facturas Pendientes</h2>
+            <div className="space-y-4">
+              {facturas.pendientes.map((factura, index) => (
             <div key={index} className="bg-yellow-50 rounded-xl p-6 border border-yellow-200">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3">
@@ -1353,7 +1629,7 @@ function FacturacionContent() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {facturasHistorial.map((factura, index) => (
+                {facturas.historial.map((factura, index) => (
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{factura.numero}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{factura.fecha}</td>
@@ -1380,6 +1656,8 @@ function FacturacionContent() {
           </div>
         </div>
       </div>
+        </>
+      )}
     </>
   )
 }
