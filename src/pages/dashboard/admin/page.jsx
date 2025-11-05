@@ -1,1646 +1,1060 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { Toaster, toast } from "react-hot-toast"
+import { useAuth } from '../../../hooks/useAuth';
+import {
+  Home,
+  Users,
+  UserPlus,
+  UserCheck,
+  FileText,
+  BedDouble,
+  Building2,
+  Box,
+  Truck,
+  Archive,
+  Receipt,
+  BarChart2,
+  ClipboardList,
+  Search,
+  Download,
+  Save,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  LogOut,
+  Bell,
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
+  Calendar,
+  Stethoscope,
+  Clock,
+} from "lucide-react"
+import { jsPDF } from "jspdf"
 
-function SectionWrapper({ title, children }) {
-  return (
-    <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-        <div className="flex gap-2">
-          <button className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Nuevo</button>
-          <button className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">Exportar</button>
-        </div>
-      </div>
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Buscar..."
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-      <div className="border border-gray-200 rounded-lg overflow-hidden">{children}</div>
-    </section>
-  )
-}
+/**
+ * AdminHospitalDashboard.jsx
+ * - Misma estética que tu page.jsx
+ * - Todas las acciones CRUD están simuladas en frontend
+ * - Modales implementados con Tailwind puro
+ */
 
-function UsuariosView() {
-  const usuarios = [
-    { nombre: "Ana Pérez", email: "ana.perez@hospital.com", rol: "Admin", estado: "Activo" },
-    { nombre: "Carlos Díaz", email: "c.diaz@hospital.com", rol: "Recepción", estado: "Activo" },
-    { nombre: "Lucía Gómez", email: "lucia.g@hospital.com", rol: "Soporte", estado: "Suspendido" },
-  ]
-  return (
-    <SectionWrapper title="Usuarios">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-            <th className="px-4 py-3" />
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {usuarios.map((u, i) => (
-            <tr key={i}>
-              <td className="px-4 py-3 text-gray-800">{u.nombre}</td>
-              <td className="px-4 py-3 text-gray-600">{u.email}</td>
-              <td className="px-4 py-3"><span className="inline-flex px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">{u.rol}</span></td>
-              <td className="px-4 py-3">
-                <span className={`inline-flex px-2 py-1 text-xs rounded ${u.estado === "Activo" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-800"}`}>{u.estado}</span>
-              </td>
-              <td className="px-4 py-3 text-right">
-                <button className="px-3 py-1 border rounded mr-2">Editar</button>
-                <button className="px-3 py-1 border rounded">Eliminar</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </SectionWrapper>
-  )
-}
+export default function AdminHospitalDashboard() {
+  const [activeSection, setActiveSection] = useState("inicio")
+  const { logout } = useAuth()
 
-function MedicosView() {
-  const medicos = [
-    { nombre: "Dr. Juan López", especialidad: "Cardiología", telefono: "+54 11 5555-1111" },
-    { nombre: "Dra. María Ruiz", especialidad: "Neurología", telefono: "+54 11 5555-2222" },
-    { nombre: "Dr. Pedro Silva", especialidad: "Oncología", telefono: "+54 11 5555-3333" },
-  ]
-  return (
-    <SectionWrapper title="Médicos">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {medicos.map((m, i) => (
-          <div key={i} className="p-4 border-b md:border-r">
-            <div className="flex items-center gap-4">
-              <img src="/professional-male-cardiologist-doctor.jpg" alt={m.nombre} className="w-14 h-14 rounded-full object-cover" />
-              <div>
-                <p className="font-semibold text-gray-900">{m.nombre}</p>
-                <p className="text-sm text-gray-600">{m.especialidad}</p>
-                <p className="text-sm text-gray-600">{m.telefono}</p>
-              </div>
-            </div>
-            <div className="mt-3 flex gap-2">
-              <button className="px-3 py-1 border rounded">Ver perfil</button>
-              <button className="px-3 py-1 border rounded">Agendar</button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </SectionWrapper>
-  )
-}
+  const renderContent = () => {
+    switch (activeSection) {
+      case "inicio": return <InicioContent setActive={setActiveSection} />
+      case "usuarios": return <UsuariosContent />
 
-function EnfermerosView() {
-  const enfermeros = [
-    { nombre: "Enf. Laura Méndez", turno: "Mañana", sector: "UCI" },
-    { nombre: "Enf. Diego Torres", turno: "Tarde", sector: "Clínica" },
-    { nombre: "Enf. Sofía Castro", turno: "Noche", sector: "Emergencias" },
-  ]
-  return (
-    <SectionWrapper title="Enfermeros">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Turno</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sector</th>
-            <th className="px-4 py-3" />
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {enfermeros.map((e, i) => (
-            <tr key={i}>
-              <td className="px-4 py-3 text-gray-800">{e.nombre}</td>
-              <td className="px-4 py-3 text-gray-600">{e.turno}</td>
-              <td className="px-4 py-3 text-gray-600">{e.sector}</td>
-              <td className="px-4 py-3 text-right">
-                <button className="px-3 py-1 border rounded mr-2">Reasignar</button>
-                <button className="px-3 py-1 border rounded">Eliminar</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </SectionWrapper>
-  )
-}
+      case "infraestructura": return <InfraestructuraContent />
+      case "productos": return <ProductosContent />
+      case "compras": return <ComprasContent />
+      case "prestaciones": return <PrestacionesContent />
+      case "facturacion": return <FacturacionContent />
+      case "reportes": return <ReportesContent />
+      case "auditoria": return <AuditoriaContent />
+      case "especialidades": return <EspecialidadesContent />
 
-function PacientesView() {
-  const pacientes = [
-    { nombre: "Ernesto Núñez", dni: "23.456.789", obraSocial: "OSDE", estado: "Internado" },
-    { nombre: "Valentina Rey", dni: "31.234.567", obraSocial: "Swiss Medical", estado: "Ambulatorio" },
-    { nombre: "Héctor Ponce", dni: "18.765.432", obraSocial: "Galeno", estado: "Alta" },
-  ]
-  return (
-    <SectionWrapper title="Pacientes">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Obra social</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-            <th className="px-4 py-3" />
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {pacientes.map((p, i) => (
-            <tr key={i}>
-              <td className="px-4 py-3 text-gray-800">{p.nombre}</td>
-              <td className="px-4 py-3 text-gray-600">{p.dni}</td>
-              <td className="px-4 py-3 text-gray-600">{p.obraSocial}</td>
-              <td className="px-4 py-3">
-                <span className={`inline-flex px-2 py-1 text-xs rounded ${p.estado === "Internado" ? "bg-red-100 text-red-700" : p.estado === "Ambulatorio" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>{p.estado}</span>
-              </td>
-              <td className="px-4 py-3 text-right">
-                <button className="px-3 py-1 border rounded mr-2">Ver historia</button>
-                <button className="px-3 py-1 border rounded">Alta</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </SectionWrapper>
-  )
-}
+      default: return <InicioContent setActive={setActiveSection} />
+    }
+  }
 
-function TurnosView() {
-  const turnos = [
-    { fecha: "2025-11-02", hora: "09:30", paciente: "Ana Pérez", medico: "Dr. López", estado: "Confirmado" },
-    { fecha: "2025-11-02", hora: "10:15", paciente: "Carlos Díaz", medico: "Dra. Ruiz", estado: "Pendiente" },
-    { fecha: "2025-11-02", hora: "11:00", paciente: "Lucía Gómez", medico: "Dr. Silva", estado: "Cancelado" },
-  ]
-  return (
-    <SectionWrapper title="Turnos">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Médico</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-            <th className="px-4 py-3" />
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {turnos.map((t, i) => (
-            <tr key={i}>
-              <td className="px-4 py-3 text-gray-800">{t.fecha}</td>
-              <td className="px-4 py-3 text-gray-600">{t.hora}</td>
-              <td className="px-4 py-3 text-gray-600">{t.paciente}</td>
-              <td className="px-4 py-3 text-gray-600">{t.medico}</td>
-              <td className="px-4 py-3">
-                <span className={`inline-flex px-2 py-1 text-xs rounded ${t.estado === "Confirmado" ? "bg-green-100 text-green-700" : t.estado === "Pendiente" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-700"}`}>{t.estado}</span>
-              </td>
-              <td className="px-4 py-3 text-right">
-                <button className="px-3 py-1 border rounded mr-2">Reprogramar</button>
-                <button className="px-3 py-1 border rounded">Cancelar</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </SectionWrapper>
-  )
-}
-
-function HabitacionesView() {
-  const habitaciones = [
-    { numero: "101", piso: 1, camas: 2, ocupadas: 1, estado: "Disponible" },
-    { numero: "202", piso: 2, camas: 1, ocupadas: 1, estado: "Ocupada" },
-    { numero: "305", piso: 3, camas: 3, ocupadas: 2, estado: "Mantenimiento" },
-  ]
-  return (
-    <SectionWrapper title="Habitaciones">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Número</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Piso</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Camas</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ocupadas</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-            <th className="px-4 py-3" />
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {habitaciones.map((h, i) => (
-            <tr key={i}>
-              <td className="px-4 py-3 text-gray-800">{h.numero}</td>
-              <td className="px-4 py-3 text-gray-600">{h.piso}</td>
-              <td className="px-4 py-3 text-gray-600">{h.camas}</td>
-              <td className="px-4 py-3 text-gray-600">{h.ocupadas}</td>
-              <td className="px-4 py-3">
-                <span className={`inline-flex px-2 py-1 text-xs rounded ${h.estado === "Disponible" ? "bg-green-100 text-green-700" : h.estado === "Ocupada" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-800"}`}>{h.estado}</span>
-              </td>
-              <td className="px-4 py-3 text-right">
-                <button className="px-3 py-1 border rounded mr-2">Asignar</button>
-                <button className="px-3 py-1 border rounded">Liberar</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </SectionWrapper>
-  )
-}
-
-function ConsultasView() {
-  const consultas = [
-    { id: "C-1203", paciente: "Ernesto Núñez", medico: "Dr. López", tipo: "Control", estado: "En curso" },
-    { id: "C-1204", paciente: "Valentina Rey", medico: "Dra. Ruiz", tipo: "Diagnóstico", estado: "Finalizada" },
-    { id: "C-1205", paciente: "Héctor Ponce", medico: "Dr. Silva", tipo: "Prequirúrgica", estado: "Programada" },
-  ]
-  return (
-    <SectionWrapper title="Consultas">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Médico</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-            <th className="px-4 py-3" />
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {consultas.map((c, i) => (
-            <tr key={i}>
-              <td className="px-4 py-3 text-gray-800">{c.id}</td>
-              <td className="px-4 py-3 text-gray-600">{c.paciente}</td>
-              <td className="px-4 py-3 text-gray-600">{c.medico}</td>
-              <td className="px-4 py-3 text-gray-600">{c.tipo}</td>
-              <td className="px-4 py-3">
-                <span className={`inline-flex px-2 py-1 text-xs rounded ${c.estado === "Finalizada" ? "bg-gray-200 text-gray-800" : c.estado === "En curso" ? "bg-blue-100 text-blue-700" : "bg-yellow-100 text-yellow-800"}`}>{c.estado}</span>
-              </td>
-              <td className="px-4 py-3 text-right">
-                <button className="px-3 py-1 border rounded mr-2">Ver detalle</button>
-                <button className="px-3 py-1 border rounded">Actualizar</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </SectionWrapper>
-  )
-}
-
-function EstudiosView() {
-  const estudios = [
-    { id: "E-845", paciente: "Ana Pérez", tipo: "RMN", fecha: "2025-11-03", estado: "Pendiente" },
-    { id: "E-846", paciente: "Carlos Díaz", tipo: "Rayos X", fecha: "2025-11-02", estado: "Completado" },
-    { id: "E-847", paciente: "Lucía Gómez", tipo: "Ecografía", fecha: "2025-11-04", estado: "Programado" },
-  ]
-  return (
-    <SectionWrapper title="Estudios médicos">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-            <th className="px-4 py-3" />
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {estudios.map((e, i) => (
-            <tr key={i}>
-              <td className="px-4 py-3 text-gray-800">{e.id}</td>
-              <td className="px-4 py-3 text-gray-600">{e.paciente}</td>
-              <td className="px-4 py-3 text-gray-600">{e.tipo}</td>
-              <td className="px-4 py-3 text-gray-600">{e.fecha}</td>
-              <td className="px-4 py-3">
-                <span className={`inline-flex px-2 py-1 text-xs rounded ${e.estado === "Completado" ? "bg-green-100 text-green-700" : e.estado === "Pendiente" ? "bg-yellow-100 text-yellow-800" : "bg-blue-100 text-blue-700"}`}>{e.estado}</span>
-              </td>
-              <td className="px-4 py-3 text-right">
-                <button className="px-3 py-1 border rounded mr-2">Ver informe</button>
-                <button className="px-3 py-1 border rounded">Reprogramar</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </SectionWrapper>
-  )
-}
-
-function RecetasView() {
-  const recetas = [
-    { id: "R-502", paciente: "Valentina Rey", medicamento: "Amoxicilina 500mg", dosis: "Cada 8h", estado: "Activa" },
-    { id: "R-503", paciente: "Ernesto Núñez", medicamento: "Ibuprofeno 400mg", dosis: "SOS", estado: "Vencida" },
-    { id: "R-504", paciente: "Héctor Ponce", medicamento: "Omeprazol 20mg", dosis: "Diaria", estado: "Activa" },
-  ]
-  return (
-    <SectionWrapper title="Recetas">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Medicamento</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dosis</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-            <th className="px-4 py-3" />
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {recetas.map((r, i) => (
-            <tr key={i}>
-              <td className="px-4 py-3 text-gray-800">{r.id}</td>
-              <td className="px-4 py-3 text-gray-600">{r.paciente}</td>
-              <td className="px-4 py-3 text-gray-600">{r.medicamento}</td>
-              <td className="px-4 py-3 text-gray-600">{r.dosis}</td>
-              <td className="px-4 py-3">
-                <span className={`inline-flex px-2 py-1 text-xs rounded ${r.estado === "Activa" ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-800"}`}>{r.estado}</span>
-              </td>
-              <td className="px-4 py-3 text-right">
-                <button className="px-3 py-1 border rounded mr-2">Renovar</button>
-                <button className="px-3 py-1 border rounded">Anular</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </SectionWrapper>
-  )
-}
-
-export default function AdminDashboard() {
-  const [activeModal, setActiveModal] = useState(null)
-  const [activeSection, setActiveSection] = useState("usuarios")
-
-  const openModal = (modal) => setActiveModal(modal)
-  const closeModal = () => setActiveModal(null)
+  const handleAdminLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    window.location.href = '/';
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
+      <Toaster position="top-right" />
+
       {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-blue-900 to-blue-800 text-white flex flex-col">
-        <div className="p-6 border-b border-blue-700">
-          <h1 className="text-xl font-bold">Hospital Admin</h1>
+      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-semibold">
+              AH
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">AdminHospital</h2>
+          </div>
         </div>
 
-        <nav className="flex-1 py-4">
-          <button
-            onClick={() => setActiveSection("usuarios")}
-            className={`w-full flex items-center gap-3 px-6 py-3 hover:bg-blue-700 transition-colors ${
-              activeSection === "usuarios" ? "bg-blue-700" : ""
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-              />
-            </svg>
-            <span>Usuarios</span>
-          </button>
+        <nav className="flex-1 p-4">
+          <SidebarButton icon={Home} label="Inicio" section="inicio" active={activeSection} setActive={setActiveSection} />
+          <SidebarButton icon={Users} label="Gestión de Usuarios" section="usuarios" active={activeSection} setActive={setActiveSection} />
 
-          <button
-            onClick={() => setActiveSection("medicos")}
-            className={`w-full flex items-center gap-3 px-6 py-3 hover:bg-blue-700 transition-colors ${
-              activeSection === "medicos" ? "bg-blue-700" : ""
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-              />
-            </svg>
-            <span>Médicos</span>
-          </button>
 
-          <button
-            onClick={() => setActiveSection("enfermeros")}
-            className={`w-full flex items-center gap-3 px-6 py-3 hover:bg-blue-700 transition-colors ${
-              activeSection === "enfermeros" ? "bg-blue-700" : ""
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-              />
-            </svg>
-            <span>Enfermeros</span>
-          </button>
+          <SidebarButton icon={BedDouble} label="Infraestructura" section="infraestructura" active={activeSection} setActive={setActiveSection} />
+          <SidebarButton icon={Box} label="Productos & Proveedores" section="productos" active={activeSection} setActive={setActiveSection} />
+          <SidebarButton icon={Truck} label="Compras / Stock-Lotes" section="compras" active={activeSection} setActive={setActiveSection} />
+          <SidebarButton icon={Archive} label="Prestaciones y Precios" section="prestaciones" active={activeSection} setActive={setActiveSection} />
+          <SidebarButton icon={Receipt} label="Facturación" section="facturacion" active={activeSection} setActive={setActiveSection} />
+          <SidebarButton icon={BarChart2} label="Reportes" section="reportes" active={activeSection} setActive={setActiveSection} />
+          <SidebarButton icon={ClipboardList} label="Auditoría" section="auditoria" active={activeSection} setActive={setActiveSection} />
+          <SidebarButton icon={Stethoscope} label="Especialidades" section="especialidades" active={activeSection} setActive={setActiveSection} />
 
-          <button
-            onClick={() => setActiveSection("pacientes")}
-            className={`w-full flex items-center gap-3 px-6 py-3 hover:bg-blue-700 transition-colors ${
-              activeSection === "pacientes" ? "bg-blue-700" : ""
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-              />
-            </svg>
-            <span>Pacientes</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSection("turnos")}
-            className={`w-full flex items-center gap-3 px-6 py-3 hover:bg-blue-700 transition-colors ${
-              activeSection === "turnos" ? "bg-blue-700" : ""
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            <span>Turnos</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSection("habitaciones")}
-            className={`w-full flex items-center gap-3 px-6 py-3 hover:bg-blue-700 transition-colors ${
-              activeSection === "habitaciones" ? "bg-blue-700" : ""
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-              />
-            </svg>
-            <span>Habitaciones</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSection("consultas")}
-            className={`w-full flex items-center gap-3 px-6 py-3 hover:bg-blue-700 transition-colors ${
-              activeSection === "consultas" ? "bg-blue-700" : ""
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
-            <span>Consultas</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSection("estudios")}
-            className={`w-full flex items-center gap-3 px-6 py-3 hover:bg-blue-700 transition-colors ${
-              activeSection === "estudios" ? "bg-blue-700" : ""
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-              />
-            </svg>
-            <span>Estudios médicos</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSection("recetas")}
-            className={`w-full flex items-center gap-3 px-6 py-3 hover:bg-blue-700 transition-colors ${
-              activeSection === "recetas" ? "bg-blue-700" : ""
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <span>Recetas</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSection("recetas")}
-            className={`hidden`}
-          >
-            <span />
-          </button>
         </nav>
 
-        <div className="p-4 border-t border-blue-700">
-          <Link href="/" className="flex items-center gap-3 px-4 py-2 hover:bg-blue-700 rounded-lg transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-              />
-            </svg>
-            <span>Cerrar sesión</span>
-          </Link>
+        <div className="p-4 border-t border-gray-200">
+          <button
+            onClick={handleAdminLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="font-medium">Cerrar sesión</span>
+          </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 p-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Bienvenido, Alejandro</h1>
-        {activeSection === "usuarios" && <UsuariosView />}
-        {activeSection === "medicos" && <MedicosView />}
-        {activeSection === "enfermeros" && <EnfermerosView />}
-        {activeSection === "pacientes" && <PacientesView />}
-        {activeSection === "turnos" && <TurnosView />}
-        {activeSection === "habitaciones" && <HabitacionesView />}
-        {activeSection === "consultas" && <ConsultasView />}
-        {activeSection === "estudios" && <EstudiosView />}
-        {activeSection === "recetas" && <RecetasView />}
+      {/* Main */}
+      <div className="flex-1 flex flex-col">
+        <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-700">Hola, <span className="font-semibold">Administrador</span></span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><Bell className="w-5 h-5 text-gray-600" /></button>
+            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><RefreshCw className="w-5 h-5 text-gray-600" /></button>
+          </div>
+        </header>
 
-        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${activeSection ? "hidden" : ""}`}>
-          {/* Gestión de usuarios */}
-          <button
-            onClick={() => openModal("usuarios")}
-            className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow text-left border border-gray-100"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Gestión de usuarios</h3>
-                <p className="text-2xl font-bold text-blue-600 mb-1">
-                  129 <span className="text-sm font-normal text-gray-600">usuarios</span>
-                </p>
-                <p className="text-sm text-gray-600">5 roles diferentes</p>
-              </div>
-            </div>
-          </button>
+        <main className="flex-1 p-8 overflow-y-auto">{renderContent()}</main>
+      </div>
+    </div>
+  )
+}
 
-          {/* Médicos registrados */}
-          <button
-            onClick={() => openModal("medicos")}
-            className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow text-left border border-gray-100"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Médicos registrados</h3>
-                <p className="text-2xl font-bold text-blue-600 mb-1">
-                  48 <span className="text-sm font-normal text-gray-600">médicos</span>
-                </p>
-                <p className="text-sm text-gray-600 mb-3">10 especialidades</p>
-                <span className="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
-                  CRUD médicos
-                </span>
-              </div>
-            </div>
-          </button>
+/* -------------------- Inicio -------------------- */
+function InicioContent({ setActive }) {
+  const [ocupacion] = useState(72)
+  const [stockBajo] = useState(14)
+  const [factPendientes] = useState(5)
 
-          {/* Turnos programados */}
-          <button
-            onClick={() => openModal("turnos")}
-            className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow text-left border border-gray-100"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Turnos programados</h3>
-                <p className="text-2xl font-bold text-blue-600 mb-1">
-                  457 <span className="text-sm font-normal text-gray-600">turnos programados</span>
-                </p>
-                <p className="text-sm text-gray-600">15 sin asignar</p>
-              </div>
-            </div>
-          </button>
+  return (
+    <>
+      <h1 className="text-4xl font-bold text-gray-900 mb-6">Panel de Administración</h1>
+      <p className="text-gray-600 mb-6">Resumen rápido de los módulos.</p>
 
-          {/* Habitaciones y camas */}
-          <button
-            onClick={() => openModal("habitaciones")}
-            className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow text-left border border-gray-100"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Habitaciones y camas</h3>
-                <p className="text-2xl font-bold text-blue-600 mb-1">
-                  50 <span className="text-sm font-normal text-gray-600">habitaciones</span>
-                </p>
-                <p className="text-sm text-gray-600">4 mantenimiento</p>
-                <p className="text-sm text-gray-600">38 camas disponibles</p>
-              </div>
-            </div>
-          </button>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <CardSimple title="Ocupación" value={`${ocupacion}%`} subtitle="Camas ocupadas" icon={<CheckCircle className="w-10 h-10 text-green-600" />} />
+        <CardSimple title="Stock bajo" value={stockBajo} subtitle="Productos por reponer" icon={<AlertCircle className="w-10 h-10 text-yellow-600" />} />
+        <CardSimple title="Facturas pendientes" value={factPendientes} subtitle="Pendientes por cobrar" icon={<Receipt className="w-10 h-10 text-red-600" />} />
+      </div>
 
-          {/* Consultas clínicas */}
-          <button
-            onClick={() => openModal("consultas")}
-            className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow text-left border border-gray-100"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Consultas clínicas</h3>
-                <p className="text-2xl font-bold text-blue-600 mb-1">
-                  760 <span className="text-sm font-normal text-gray-600">consultas atendidas</span>
-                </p>
-                <p className="text-sm text-gray-600">4 cirugías hoy</p>
-              </div>
-            </div>
-          </button>
-
-          {/* Estudios y cirugías */}
-          <button
-            onClick={() => openModal("estudios")}
-            className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow text-left border border-gray-100"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Estudios, cirugías</h3>
-                <p className="text-2xl font-bold text-blue-600 mb-1">
-                  18 <span className="text-sm font-normal text-gray-600">estudios por realizar</span>
-                </p>
-                <p className="text-sm text-gray-600">4 cirugías hoy</p>
-              </div>
-            </div>
-          </button>
-
-          {/* Estadísticas y logs */}
-          <button
-            onClick={() => openModal("estadisticas")}
-            className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow text-left border border-gray-100"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Estadísticas y logs</h3>
-                <p className="text-2xl font-bold text-blue-600 mb-1">
-                  2,405 <span className="text-sm font-normal text-gray-600">pacientes atendidos</span>
-                </p>
-                <p className="text-sm text-gray-600">742 ciclos clínicos</p>
-              </div>
-            </div>
-          </button>
-        </div>
-      </main>
-
-      {/* Modal Backdrop with Blur */}
-      {activeModal && <div className="fixed inset-0 bg-white/30 backdrop-blur-sm z-40" onClick={closeModal} />}
-
-      {/* Modals */}
-      {activeModal === "usuarios" && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6">
-              <div className="mb-6 flex gap-4">
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                  + Nuevo Usuario
-                </button>
-                <input
-                  type="text"
-                  placeholder="Buscar usuario..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ID
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Nombre
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Rol
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Estado
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Acciones
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {[
-                      { id: 1, nombre: "Juan Pérez", email: "juan@hospital.com", rol: "Admin", estado: "Activo" },
-                      { id: 2, nombre: "María García", email: "maria@hospital.com", rol: "Médico", estado: "Activo" },
-                      {
-                        id: 3,
-                        nombre: "Carlos López",
-                        email: "carlos@hospital.com",
-                        rol: "Enfermero",
-                        estado: "Activo",
-                      },
-                      { id: 4, nombre: "Ana Martínez", email: "ana@hospital.com", rol: "Paciente", estado: "Activo" },
-                      {
-                        id: 5,
-                        nombre: "Luis Rodríguez",
-                        email: "luis@hospital.com",
-                        rol: "Médico",
-                        estado: "Inactivo",
-                      },
-                    ].map((usuario) => (
-                      <tr key={usuario.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{usuario.id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {usuario.nombre}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{usuario.email}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                            {usuario.rol}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-3 py-1 text-xs font-medium rounded-full ${
-                              usuario.estado === "Activo" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {usuario.estado}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <button className="text-blue-600 hover:text-blue-800 mr-3">Editar</button>
-                          <button className="text-red-600 hover:text-red-800">Eliminar</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <h2 className="text-xl font-semibold mb-4">Accesos rápidos</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => setActive('usuarios')} className="bg-gray-50 p-4 rounded-lg text-left hover:bg-gray-100"><UserPlus className="w-6 h-6" /><p className="font-medium">Usuarios</p><p className="text-sm text-gray-500">Crear/editar/desactivar</p></button>
+            <button onClick={() => setActive('perfiles')} className="bg-gray-50 p-4 rounded-lg text-left hover:bg-gray-100"><UserCheck className="w-6 h-6" /><p className="font-medium">Perfiles</p><p className="text-sm text-gray-500">CRUD profesionales</p></button>
+            <button onClick={() => setActive('infraestructura')} className="bg-gray-50 p-4 rounded-lg text-left hover:bg-gray-100"><BedDouble className="w-6 h-6" /><p className="font-medium">Infraestructura</p><p className="text-sm text-gray-500">Habitaciones y camas</p></button>
+            <button onClick={() => setActive('compras')} className="bg-gray-50 p-4 rounded-lg text-left hover:bg-gray-100"><Box className="w-6 h-6" /><p className="font-medium">Compras</p><p className="text-sm text-gray-500">Ingresar lotes</p></button>
           </div>
         </div>
-      )}
 
-      {activeModal === "medicos" && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Gestión de Médicos</h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+        <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <h2 className="text-xl font-semibold mb-4">Actividad reciente</h2>
+          <ul className="space-y-3">
+            <li className="flex items-start gap-3"><CheckCircle className="w-5 h-5 text-green-600 mt-1" /><div><p className="font-medium">Compra registrada</p><p className="text-sm text-gray-500">FarmaPlus — 10/04/2025</p></div></li>
+            <li className="flex items-start gap-3"><AlertCircle className="w-5 h-5 text-yellow-600 mt-1" /><div><p className="font-medium">Stock bajo</p><p className="text-sm text-gray-500">Paracetamol 500mg</p></div></li>
+            <li className="flex items-start gap-3"><Receipt className="w-5 h-5 text-red-600 mt-1" /><div><p className="font-medium">Factura pendiente</p><p className="text-sm text-gray-500">Internación — Martínez</p></div></li>
+          </ul>
+        </div>
+      </div>
+    </>
+  )
+}
+
+/* -------------------- Usuarios: modal create/edit + simulated actions -------------------- */
+function UsuariosContent() {
+  const initialUsers = [
+    { id: 1, nombre: "Dr. Juan Pérez", rol: "Médico", activo: true, email: "juan.perez@hospital.local" },
+    { id: 2, nombre: "Enf. Marta López", rol: "Enfermero", activo: true, email: "marta.lopez@hospital.local" },
+    { id: 3, nombre: "Carlos Ramos", rol: "Recepcionista", activo: false, email: "carlos.ramos@hospital.local" },
+  ]
+  const [users, setUsers] = useState(initialUsers)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [form, setForm] = useState({ nombre: "", apellido: "", dni: "", email: "", fechaNacimiento: "", telefono: "", username: "", rol: "Médico" })
+
+  useEffect(() => {
+    if (editing) {
+      setForm({
+        nombre: editing.nombre.split(' ')[1] || "",
+        apellido: editing.nombre.split(' ')[0] || "",
+        dni: editing.dni || "",
+        email: editing.email,
+        fechaNacimiento: editing.fechaNacimiento || "",
+        telefono: editing.telefono || "",
+        username: editing.username || "",
+        rol: editing.rol
+      })
+    }
+  }, [editing])
+
+  const openCreate = () => { setEditing(null); setForm({ nombre: "", apellido: "", dni: "", email: "", fechaNacimiento: "", telefono: "", username: "", rol: "Médico" }); setModalOpen(true) }
+  const openEdit = (u) => { setEditing(u); setModalOpen(true) }
+
+  const save = async () => {
+    if (!form.nombre || !form.apellido || !form.dni || !form.email || !form.username) { toast.error("Completar todos los campos requeridos"); return }
+    setLoading(true)
+    await new Promise(r => setTimeout(r, 900)) // simula request
+    if (editing) {
+      setUsers(users.map(u => u.id === editing.id ? { ...u, nombre: `${form.apellido} ${form.nombre}`, ...form } : u))
+      toast.success("Usuario modificado (simulado)")
+    } else {
+      const nuevo = { id: Date.now(), ...form, nombre: `${form.apellido} ${form.nombre}`, activo: true, password: form.dni }
+      setUsers([nuevo, ...users])
+      toast.success("Usuario creado (simulado)")
+    }
+    setModalOpen(false)
+    setEditing(null)
+    setForm({ nombre: "", apellido: "", dni: "", email: "", fechaNacimiento: "", telefono: "", username: "", rol: "Médico" })
+    setLoading(false)
+  }
+
+  const toggleActive = (id) => {
+    setUsers(users.map(u => u.id === id ? { ...u, activo: !u.activo } : u))
+    toast.success("Estado actualizado (simulado)")
+  }
+
+  const remove = (id) => {
+    if (!confirm("¿Eliminar usuario?")) return
+    setUsers(users.filter(u => u.id !== id))
+    toast.success("Usuario eliminado (simulado)")
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Gestión de Usuarios</h1>
+        <div className="flex gap-2">
+          <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Nuevo Usuario
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs text-gray-500">Nombre</th>
+                <th className="px-6 py-3 text-left text-xs text-gray-500">Rol</th>
+                <th className="px-6 py-3 text-left text-xs text-gray-500">Email</th>
+                <th className="px-6 py-3 text-left text-xs text-gray-500">Estado</th>
+                <th className="px-6 py-3 text-left text-xs text-gray-500">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {users.map(u => (
+                <tr key={u.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">{u.nombre}</td>
+                  <td className="px-6 py-4">{u.rol}</td>
+                  <td className="px-6 py-4">{u.email}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded-full text-xs ${u.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{u.activo ? 'Activo' : 'Desactivado'}</span>
+                  </td>
+                  <td className="px-6 py-4 flex gap-2">
+                    <button onClick={() => openEdit(u)} className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-sm flex items-center gap-1"><Edit className="w-4 h-4" />Editar</button>
+                    <button onClick={() => toggleActive(u.id)} className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-sm flex items-center gap-1"><UserCheck className="w-4 h-4" />{u.activo ? 'Desactivar' : 'Activar'}</button>
+                    <button onClick={() => remove(u.id)} className="px-2 py-1 bg-red-50 text-red-700 rounded text-sm flex items-center gap-1"><Trash2 className="w-4 h-4" />Eliminar</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {users.length === 0 && <p className="p-4 text-sm text-gray-500">No hay usuarios.</p>}
+        </div>
+      </div>
+
+      {/* Modal */}
+      {modalOpen && (
+        <Modal onClose={() => { if (!loading) setModalOpen(false); }}>
+          <h3 className="text-xl font-semibold mb-4">{editing ? 'Editar Usuario' : 'Crear Usuario'}</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-gray-500">Nombre</label>
+              <input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} className="w-full rounded-lg border p-2" />
             </div>
+            <div>
+              <label className="text-sm text-gray-500">Apellido</label>
+              <input value={form.apellido} onChange={e => setForm({ ...form, apellido: e.target.value })} className="w-full rounded-lg border p-2" />
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">DNI</label>
+              <input value={form.dni} onChange={e => setForm({ ...form, dni: e.target.value })} className="w-full rounded-lg border p-2" />
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">Email</label>
+              <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full rounded-lg border p-2" />
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">Fecha de Nacimiento</label>
+              <input type="date" value={form.fechaNacimiento} onChange={e => setForm({ ...form, fechaNacimiento: e.target.value })} className="w-full rounded-lg border p-2" />
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">Teléfono</label>
+              <input value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} className="w-full rounded-lg border p-2" />
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">Nombre de Usuario</label>
+              <input value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} className="w-full rounded-lg border p-2" />
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">Rol</label>
+              <select value={form.rol} onChange={e => setForm({ ...form, rol: e.target.value })} className="w-full rounded-lg border p-2">
+                <option>Médico</option>
+                <option>Enfermero</option>
+                <option>Recepcionista</option>
+                <option>Administrativo</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <p className="text-sm text-gray-500">La contraseña será el DNI.</p>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-6">
+            <button onClick={save} disabled={loading} className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center gap-2">
+              {loading ? 'Guardando...' : (<><Save className="w-4 h-4" /> Guardar</>)}
+            </button>
+            <button onClick={() => setModalOpen(false)} disabled={loading} className="px-4 py-2 bg-gray-100 rounded-lg">Cancelar</button>
+          </div>
+        </Modal>
+      )}
+    </>
+  )
+}
 
-            <div className="p-6">
-              <div className="mb-6 flex gap-4">
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                  + Nuevo Médico
-                </button>
-                <input
-                  type="text"
-                  placeholder="Buscar médico..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <select className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option>Todas las especialidades</option>
-                  <option>Cardiología</option>
-                  <option>Pediatría</option>
-                  <option>Neurología</option>
-                  <option>Traumatología</option>
-                </select>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[
-                  { nombre: "Dr. Roberto Sánchez", especialidad: "Cardiología", pacientes: 45, disponible: true },
-                  { nombre: "Dra. Laura Fernández", especialidad: "Pediatría", pacientes: 62, disponible: true },
-                  { nombre: "Dr. Miguel Torres", especialidad: "Neurología", pacientes: 38, disponible: false },
-                  { nombre: "Dra. Carmen Ruiz", especialidad: "Traumatología", pacientes: 51, disponible: true },
-                  { nombre: "Dr. José Morales", especialidad: "Cardiología", pacientes: 42, disponible: true },
-                  { nombre: "Dra. Patricia Díaz", especialidad: "Pediatría", pacientes: 58, disponible: false },
-                ].map((medico, index) => (
-                  <div
-                    key={index}
-                    className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow"
-                  >
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                        <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                          />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{medico.nombre}</h3>
-                        <p className="text-sm text-gray-600">{medico.especialidad}</p>
-                      </div>
-                    </div>
-                    <div className="space-y-2 mb-4">
-                      <p className="text-sm text-gray-600">
-                        Pacientes activos: <span className="font-semibold text-gray-900">{medico.pacientes}</span>
-                      </p>
-                      <p className="text-sm">
-                        <span
-                          className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                            medico.disponible ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {medico.disponible ? "Disponible" : "No disponible"}
-                        </span>
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
-                        Ver perfil
-                      </button>
-                      <button className="px-3 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors">
-                        Editar
-                      </button>
-                    </div>
-                  </div>
+/* -------------------- Personas / Pacientes (modal) -------------------- */
+
+/* -------------------- Infraestructura (modal) -------------------- */
+function InfraestructuraContent() {
+  const initialRooms = [
+    { id: 101, tipo: "Habitación", camas: 2, ocupadas: 1 },
+    { id: 201, tipo: "Quirófano", camas: 0, ocupadas: 0 },
+  ]
+  const [rooms, setRooms] = useState(initialRooms)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [form, setForm] = useState({ id: "", tipo: "Habitación", camas: 1 })
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => { if (editing) setForm({ id: editing.id, tipo: editing.tipo, camas: editing.camas }) }, [editing])
+
+  const openCreate = () => { setEditing(null); setForm({ id: "", tipo: "Habitación", camas: 1 }); setModalOpen(true) }
+  const openEdit = (r) => { setEditing(r); setModalOpen(true) }
+
+  const save = async () => {
+    if (!form.id) { toast.error('Número requerido'); return }
+    setLoading(true)
+    await new Promise(r => setTimeout(r, 600))
+    if (editing) {
+      setRooms(rooms.map(rm => rm.id === editing.id ? { ...rm, ...form, camas: Number(form.camas) } : rm))
+      toast.success('Elemento actualizado (simulado)')
+    } else {
+      setRooms([{ id: form.id, tipo: form.tipo, camas: Number(form.camas), ocupadas: 0 }, ...rooms])
+      toast.success('Elemento agregado (simulado)')
+    }
+    setLoading(false)
+    setModalOpen(false)
+    setEditing(null)
+  }
+
+  const occupy = (id) => {
+    setRooms(rooms.map(r => r.id === id ? { ...r, ocupadas: Math.min(r.camas, r.ocupadas + 1) } : r))
+    toast.success('Ocupación actualizada (simulado)')
+  }
+
+  const remove = (id) => {
+    if (!confirm('Eliminar elemento de infraestructura?')) return
+    setRooms(rooms.filter(r => r.id !== id))
+    toast.success('Eliminado (simulado)')
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Infraestructura</h1>
+        <div>
+          <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white rounded-lg"><Plus className="w-4 h-4" /> Nuevo</button>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-6 py-3 text-xs text-gray-500">N°</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Tipo</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Camas</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Ocupadas</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {rooms.map(r => (
+                <tr key={r.id}>
+                  <td className="px-6 py-4">{r.id}</td>
+                  <td className="px-6 py-4">{r.tipo}</td>
+                  <td className="px-6 py-4">{r.camas}</td>
+                  <td className="px-6 py-4">{r.ocupadas}</td>
+                  <td className="px-6 py-4 flex gap-2">
+                    <button onClick={() => openEdit(r)} className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-sm"><Edit className="w-4 h-4" /></button>
+                    <button onClick={() => occupy(r.id)} className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-sm">Ocupar</button>
+                    <button onClick={() => remove(r.id)} className="px-2 py-1 bg-red-50 text-red-700 rounded text-sm"><Trash2 className="w-4 h-4" /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {modalOpen && (
+        <Modal onClose={() => setModalOpen(false)}>
+          <h3 className="text-xl font-semibold mb-2">{editing ? 'Editar elemento' : 'Nuevo elemento'}</h3>
+          <div className="space-y-3">
+            <label className="text-sm text-gray-500">Número</label>
+            <input value={form.id} onChange={e => setForm({ ...form, id: e.target.value })} className="w-full rounded-lg border p-2" />
+            <label className="text-sm text-gray-500">Tipo</label>
+            <select value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })} className="w-full rounded-lg border p-2">
+              <option>Habitación</option>
+              <option>Quirófano</option>
+              <option>UCI</option>
+            </select>
+            <label className="text-sm text-gray-500">Camas</label>
+            <input type="number" value={form.camas} onChange={e => setForm({ ...form, camas: e.target.value })} className="w-full rounded-lg border p-2" />
+            <div className="flex gap-2 mt-2">
+              <button onClick={save} disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded-lg">{loading ? 'Guardando...' : 'Guardar'}</button>
+              <button onClick={() => setModalOpen(false)} disabled={loading} className="px-4 py-2 bg-gray-100 rounded-lg">Cancelar</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
+  )
+}
+
+/* -------------------- Productos & Proveedores (modal) -------------------- */
+function ProductosContent() {
+  const initial = [
+    { id: 1, nombre: "Paracetamol 500mg", stock: 8, proveedor: "FarmaPlus", vencimiento: "2025-11-30" },
+    { id: 2, nombre: "Guantes Nitrilo", stock: 150, proveedor: "MedSupplies", vencimiento: "2027-01-01" },
+  ]
+  const [items, setItems] = useState(initial)
+  const [filter, setFilter] = useState("")
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [form, setForm] = useState({ nombre: "", stock: 0, proveedor: "", vencimiento: "" })
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => { if (editing) setForm({ nombre: editing.nombre, stock: editing.stock, proveedor: editing.proveedor, vencimiento: editing.vencimiento }) }, [editing])
+
+  const openCreate = () => { setEditing(null); setForm({ nombre: "", stock: 0, proveedor: "", vencimiento: "" }); setModalOpen(true) }
+  const openEdit = (it) => { setEditing(it); setModalOpen(true) }
+
+  const save = async () => {
+    if (!form.nombre) { toast.error('Nombre requerido'); return }
+    setLoading(true)
+    await new Promise(r => setTimeout(r, 700))
+    if (editing) {
+      setItems(items.map(i => i.id === editing.id ? { ...i, ...form } : i))
+      toast.success('Producto actualizado (simulado)')
+    } else {
+      setItems([{ id: Date.now(), ...form }, ...items])
+      toast.success('Producto creado (simulado)')
+    }
+    setModalOpen(false)
+    setEditing(null)
+    setLoading(false)
+  }
+
+  const downloadCSV = () => {
+    const csv = ["Nombre,Stock,Proveedor,Vencimiento", ...items.map(i => `${i.nombre},${i.stock},${i.proveedor},${i.vencimiento}`)].join("\n")
+    const blob = new Blob([csv], { type: "text/csv" })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = 'productos.csv'; a.click(); a.remove()
+    toast.success("CSV descargado (simulado)")
+  }
+
+  const viewLotes = (item) => {
+    toast.info(`Ver lotes de ${item.nombre} (simulado)`)
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Productos y Proveedores</h1>
+        <div className="flex gap-2">
+          <button onClick={downloadCSV} className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2"><Download className="w-4 h-4" /> Exportar CSV</button>
+          <button onClick={openCreate} className="px-4 py-2 bg-green-600 text-white rounded-lg"><Plus className="w-4 h-4" /> Nuevo</button>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <div className="flex items-center justify-between mb-4">
+          <input placeholder="Buscar producto o proveedor" value={filter} onChange={e => setFilter(e.target.value)} className="rounded-lg border p-2 w-1/3" />
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-6 py-3 text-xs text-gray-500">Producto</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Stock</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Proveedor</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Vencimiento</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {items.filter(i => i.nombre.toLowerCase().includes(filter.toLowerCase()) || i.proveedor.toLowerCase().includes(filter.toLowerCase())).map(i => (
+                <tr key={i.id}>
+                  <td className="px-6 py-4">{i.nombre}</td>
+                  <td className={`px-6 py-4 ${i.stock < 20 ? 'text-red-600' : 'text-gray-900'}`}>{i.stock}</td>
+                  <td className="px-6 py-4">{i.proveedor}</td>
+                  <td className="px-6 py-4">{i.vencimiento}</td>
+                  <td className="px-6 py-4 flex gap-2">
+                    <button onClick={() => openEdit(i)} className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-sm"><Edit className="w-4 h-4" /></button>
+                    <button onClick={() => viewLotes(i)} className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-sm">Lotes</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {items.length === 0 && <p className="p-4 text-sm text-gray-500">No hay productos.</p>}
+        </div>
+      </div>
+
+      {modalOpen && (
+        <Modal onClose={() => setModalOpen(false)}>
+          <h3 className="text-xl font-semibold mb-2">{editing ? 'Editar Producto' : 'Nuevo Producto'}</h3>
+          <div className="space-y-3">
+            <label className="text-sm text-gray-500">Nombre</label>
+            <input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} className="w-full rounded-lg border p-2" />
+            <label className="text-sm text-gray-500">Stock</label>
+            <input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: Number(e.target.value) })} className="w-full rounded-lg border p-2" />
+            <label className="text-sm text-gray-500">Proveedor</label>
+            <input value={form.proveedor} onChange={e => setForm({ ...form, proveedor: e.target.value })} className="w-full rounded-lg border p-2" />
+            <label className="text-sm text-gray-500">Vencimiento</label>
+            <input type="date" value={form.vencimiento} onChange={e => setForm({ ...form, vencimiento: e.target.value })} className="w-full rounded-lg border p-2" />
+            <div className="flex gap-2 mt-2">
+              <button onClick={save} disabled={loading} className="px-4 py-2 bg-green-600 text-white rounded-lg">{loading ? 'Guardando...' : 'Guardar'}</button>
+              <button onClick={() => setModalOpen(false)} disabled={loading} className="px-4 py-2 bg-gray-100 rounded-lg">Cancelar</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
+  )
+}
+
+/* -------------------- Compras / Stock-Lotes (modal) -------------------- */
+function ComprasContent() {
+  const [purchases, setPurchases] = useState([
+    { id: 1, proveedor: "FarmaPlus", fecha: "2025-04-10", total: 120000, items: 10 },
+  ])
+  const [modalOpen, setModalOpen] = useState(false)
+  const [form, setForm] = useState({ producto: "", lote: "", vencimiento: "", cantidad: 0 })
+  const [loading, setLoading] = useState(false)
+
+  const register = async () => {
+    if (!form.producto || !form.lote) { toast.error("Completar datos del lote"); return }
+    setLoading(true)
+    await new Promise(r => setTimeout(r, 900))
+    setPurchases([{ id: Date.now(), proveedor: "Proveedor X", fecha: new Date().toLocaleDateString(), total: 0, items: form.cantidad }, ...purchases])
+    toast.success("Compra registrada & stock ingresado (simulado)")
+    setForm({ producto: "", lote: "", vencimiento: "", cantidad: 0 })
+    setModalOpen(false)
+    setLoading(false)
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Compras y Stock (lote + vencimiento)</h1>
+        <div>
+          <button onClick={() => setModalOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg"><Plus className="w-4 h-4" /> Ingresar lote</button>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <h3 className="font-semibold mb-4">Compras recientes</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-6 py-3 text-xs text-gray-500">Proveedor</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Fecha</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Total</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Items</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {purchases.map(p => (
+                <tr key={p.id}>
+                  <td className="px-6 py-4">{p.proveedor}</td>
+                  <td className="px-6 py-4">{p.fecha}</td>
+                  <td className="px-6 py-4">${p.total.toLocaleString()}</td>
+                  <td className="px-6 py-4">{p.items}</td>
+                  <td className="px-6 py-4"><button onClick={() => toast('Detalle (simulado)')} className="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm">Detalle</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {modalOpen && (
+        <Modal onClose={() => setModalOpen(false)}>
+          <h3 className="text-xl font-semibold mb-2">Ingresar stock por lote</h3>
+          <div className="space-y-3">
+            <label className="text-sm text-gray-500">Producto</label>
+            <input value={form.producto} onChange={e => setForm({ ...form, producto: e.target.value })} className="w-full rounded-lg border p-2" />
+            <label className="text-sm text-gray-500">Lote</label>
+            <input value={form.lote} onChange={e => setForm({ ...form, lote: e.target.value })} className="w-full rounded-lg border p-2" />
+            <label className="text-sm text-gray-500">Vencimiento</label>
+            <input type="date" value={form.vencimiento} onChange={e => setForm({ ...form, vencimiento: e.target.value })} className="w-full rounded-lg border p-2" />
+            <label className="text-sm text-gray-500">Cantidad</label>
+            <input type="number" value={form.cantidad} onChange={e => setForm({ ...form, cantidad: Number(e.target.value) })} className="w-full rounded-lg border p-2" />
+            <div className="flex gap-2 mt-2">
+              <button onClick={register} disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded-lg">{loading ? 'Registrando...' : 'Registrar compra'}</button>
+              <button onClick={() => setModalOpen(false)} disabled={loading} className="px-4 py-2 bg-gray-100 rounded-lg">Cancelar</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
+  )
+}
+
+/* -------------------- Prestaciones (modal) -------------------- */
+function PrestacionesContent() {
+  const [prestaciones, setPrestaciones] = useState([
+    { id: 1, codigo: "P-001", nombre: "Consulta de Clínica", precio: 8000 },
+    { id: 2, codigo: "P-002", nombre: "Sala de Internación (día)", precio: 45000 },
+  ])
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [form, setForm] = useState({ codigo: "", nombre: "", precio: 0 })
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => { if (editing) setForm({ codigo: editing.codigo, nombre: editing.nombre, precio: editing.precio }) }, [editing])
+
+  const openCreate = () => { setEditing(null); setForm({ codigo: "", nombre: "", precio: 0 }); setModalOpen(true) }
+  const openEdit = (p) => { setEditing(p); setModalOpen(true) }
+
+  const save = async () => {
+    if (!form.codigo || !form.nombre) { toast.error('Código y nombre requeridos'); return }
+    setLoading(true)
+    await new Promise(r => setTimeout(r, 700))
+    if (editing) {
+      setPrestaciones(prestaciones.map(pr => pr.id === editing.id ? { ...pr, ...form } : pr))
+      toast.success('Prestación actualizada (simulado)')
+    } else {
+      setPrestaciones([{ id: Date.now(), ...form }, ...prestaciones])
+      toast.success('Prestación creada (simulado)')
+    }
+    setModalOpen(false)
+    setLoading(false)
+    setEditing(null)
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Prestaciones y Precios</h1>
+        <div>
+          <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white rounded-lg"><Plus className="w-4 h-4" /> Nuevo</button>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-6 py-3 text-xs text-gray-500">Código</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Nombre</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Precio</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {prestaciones.map(p => (
+                <tr key={p.id}>
+                  <td className="px-6 py-4">{p.codigo}</td>
+                  <td className="px-6 py-4">{p.nombre}</td>
+                  <td className="px-6 py-4">${p.precio.toLocaleString()}</td>
+                  <td className="px-6 py-4 flex gap-2">
+                    <button onClick={() => openEdit(p)} className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-sm"><Edit className="w-4 h-4" /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {modalOpen && (
+        <Modal onClose={() => setModalOpen(false)}>
+          <h3 className="text-xl font-semibold mb-2">{editing ? 'Editar prestación' : 'Nueva prestación'}</h3>
+          <div className="space-y-3">
+            <label className="text-sm text-gray-500">Código</label>
+            <input value={form.codigo} onChange={e => setForm({ ...form, codigo: e.target.value })} className="w-full rounded-lg border p-2" />
+            <label className="text-sm text-gray-500">Nombre</label>
+            <input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} className="w-full rounded-lg border p-2" />
+            <label className="text-sm text-gray-500">Precio</label>
+            <input type="number" value={form.precio} onChange={e => setForm({ ...form, precio: Number(e.target.value) })} className="w-full rounded-lg border p-2" />
+            <div className="flex gap-2 mt-2">
+              <button onClick={save} disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded-lg">{loading ? 'Guardando...' : 'Guardar'}</button>
+              <button onClick={() => setModalOpen(false)} disabled={loading} className="px-4 py-2 bg-gray-100 rounded-lg">Cancelar</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
+  )
+}
+
+/* -------------------- Facturación (simulada pagos complejos) -------------------- */
+function FacturacionContent() {
+  const invoices = [
+    { id: 1, numero: "FAC-2025-0342", fecha: "2025-03-20", concepto: "Internación", monto: 250000, estado: "Pendiente" },
+    { id: 2, numero: "FAC-2025-0298", fecha: "2025-02-28", concepto: "Consulta", monto: 8500, estado: "Pagada" },
+  ]
+  const [payments, setPayments] = useState([])
+  const [selected, setSelected] = useState(null)
+  const [modalPayOpen, setModalPayOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [payForm, setPayForm] = useState({ monto: 0, metodo: "Transferencia" })
+
+  const openPayModal = (inv) => { setSelected(inv); setPayForm({ monto: inv.monto, metodo: "Transferencia" }); setModalPayOpen(true) }
+
+  const registerPartial = async () => {
+    setLoading(true)
+    await new Promise(r => setTimeout(r, 900))
+    setPayments([{ id: Date.now(), facturaId: selected.id, fecha: new Date().toLocaleDateString(), monto: Number(payForm.monto), metodo: payForm.metodo }, ...payments])
+    toast.success("Pago registrado (simulado)")
+    setModalPayOpen(false)
+    setLoading(false)
+  }
+
+  const exportResumenPDF = () => {
+    const doc = new jsPDF()
+    doc.setFontSize(16)
+    doc.text("Resumen Facturación", 20, 20)
+    let y = 40
+    invoices.forEach(inv => { doc.setFontSize(12); doc.text(`${inv.numero} — ${inv.concepto} — $${inv.monto.toLocaleString()} — ${inv.estado}`, 20, y); y += 8 })
+    doc.save("resumen_facturacion.pdf")
+    toast.success("PDF descargado (simulado)")
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Facturación</h1>
+        <div className="flex gap-2">
+          <button onClick={exportResumenPDF} className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2"><Download className="w-4 h-4" />Exportar</button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-xl border border-gray-200">
+          <h3 className="font-semibold mb-4">Facturas</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-6 py-3 text-xs text-gray-500">N°</th>
+                  <th className="px-6 py-3 text-xs text-gray-500">Fecha</th>
+                  <th className="px-6 py-3 text-xs text-gray-500">Concepto</th>
+                  <th className="px-6 py-3 text-xs text-gray-500">Monto</th>
+                  <th className="px-6 py-3 text-xs text-gray-500">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {invoices.map(inv => (
+                  <tr key={inv.id} onClick={() => setSelected(inv)} className="hover:bg-gray-50 cursor-pointer">
+                    <td className="px-6 py-4">{inv.numero}</td>
+                    <td className="px-6 py-4">{inv.fecha}</td>
+                    <td className="px-6 py-4">{inv.concepto}</td>
+                    <td className="px-6 py-4">${inv.monto.toLocaleString()}</td>
+                    <td className="px-6 py-4">{inv.estado}</td>
+                  </tr>
                 ))}
-              </div>
-            </div>
+              </tbody>
+            </table>
           </div>
         </div>
-      )}
 
-      {activeModal === "turnos" && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Gestión de Turnos</h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6">
-              <div className="mb-6 flex gap-4">
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                  + Nuevo Turno
-                </button>
-                <input
-                  type="date"
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <select className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option>Todos los estados</option>
-                  <option>Confirmado</option>
-                  <option>Pendiente</option>
-                  <option>Cancelado</option>
-                </select>
+        <div className="bg-white p-6 rounded-xl border border-gray-200">
+          <h3 className="font-semibold mb-4">Detalle / Registrar pago</h3>
+          {selected ? (
+            <>
+              <p className="text-sm text-gray-600 mb-2">Factura: <span className="font-medium">{selected.numero}</span></p>
+              <p className="text-sm text-gray-600 mb-4">Monto: <span className="font-medium">${selected.monto.toLocaleString()}</span></p>
+              <div className="flex gap-2">
+                <button onClick={() => openPayModal(selected)} className="px-4 py-2 bg-green-600 text-white rounded-lg">Registrar Pago</button>
+                <button onClick={() => toast('Abrir modal pagos compuestos (simulado)')} className="px-4 py-2 bg-blue-50 rounded-lg">Pago complejo</button>
               </div>
+            </>
+          ) : (
+            <p className="text-sm text-gray-500">Seleccione una factura para ver detalle y registrar pagos.</p>
+          )}
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                <p className="text-yellow-800 font-medium">⚠️ 15 turnos sin asignar médico</p>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Fecha
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Hora
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Paciente
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Médico
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Especialidad
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Estado
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Acciones
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {[
-                      {
-                        fecha: "2025-10-08",
-                        hora: "09:00",
-                        paciente: "Ana Martínez",
-                        medico: "Dr. Sánchez",
-                        especialidad: "Cardiología",
-                        estado: "Confirmado",
-                      },
-                      {
-                        fecha: "2025-10-08",
-                        hora: "10:00",
-                        paciente: "Pedro Gómez",
-                        medico: "Sin asignar",
-                        especialidad: "Pediatría",
-                        estado: "Pendiente",
-                      },
-                      {
-                        fecha: "2025-10-08",
-                        hora: "11:00",
-                        paciente: "Laura Silva",
-                        medico: "Dra. Fernández",
-                        especialidad: "Pediatría",
-                        estado: "Confirmado",
-                      },
-                      {
-                        fecha: "2025-10-08",
-                        hora: "14:00",
-                        paciente: "Carlos Ruiz",
-                        medico: "Dr. Torres",
-                        especialidad: "Neurología",
-                        estado: "Confirmado",
-                      },
-                      {
-                        fecha: "2025-10-09",
-                        hora: "09:00",
-                        paciente: "María López",
-                        medico: "Sin asignar",
-                        especialidad: "Traumatología",
-                        estado: "Pendiente",
-                      },
-                    ].map((turno, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{turno.fecha}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{turno.hora}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {turno.paciente}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {turno.medico === "Sin asignar" ? (
-                            <span className="text-red-600 font-medium">{turno.medico}</span>
-                          ) : (
-                            turno.medico
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{turno.especialidad}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-3 py-1 text-xs font-medium rounded-full ${
-                              turno.estado === "Confirmado"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-yellow-100 text-yellow-800"
-                            }`}
-                          >
-                            {turno.estado}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <button className="text-blue-600 hover:text-blue-800 mr-3">Editar</button>
-                          <button className="text-red-600 hover:text-red-800">Cancelar</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <div className="mt-6">
+            <h4 className="font-semibold mb-2">Historial de pagos (simulado)</h4>
+            {payments.length === 0 ? <p className="text-sm text-gray-500">Sin pagos registrados.</p> : (
+              <ul className="space-y-2">{payments.map(p => <li key={p.id} className="text-sm text-gray-700">{p.fecha} — ${p.monto.toLocaleString()} — {p.metodo}</li>)}</ul>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
-      {activeModal === "habitaciones" && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Gestión de Habitaciones</h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm text-green-600 mb-1">Disponibles</p>
-                  <p className="text-3xl font-bold text-green-700">38</p>
-                </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-600 mb-1">Ocupadas</p>
-                  <p className="text-3xl font-bold text-blue-700">8</p>
-                </div>
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <p className="text-sm text-orange-600 mb-1">Mantenimiento</p>
-                  <p className="text-3xl font-bold text-orange-700">4</p>
-                </div>
-              </div>
-
-              <div className="mb-6 flex gap-4">
-                <select className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option>Todos los pisos</option>
-                  <option>Piso 1</option>
-                  <option>Piso 2</option>
-                  <option>Piso 3</option>
-                  <option>Piso 4</option>
-                </select>
-                <select className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option>Todos los estados</option>
-                  <option>Disponible</option>
-                  <option>Ocupada</option>
-                  <option>Mantenimiento</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                  { numero: "101", piso: 1, tipo: "Individual", estado: "Disponible", paciente: null },
-                  { numero: "102", piso: 1, tipo: "Doble", estado: "Ocupada", paciente: "Juan Pérez" },
-                  { numero: "103", piso: 1, tipo: "Individual", estado: "Mantenimiento", paciente: null },
-                  { numero: "104", piso: 1, tipo: "Suite", estado: "Disponible", paciente: null },
-                  { numero: "201", piso: 2, tipo: "Individual", estado: "Ocupada", paciente: "María García" },
-                  { numero: "202", piso: 2, tipo: "Doble", estado: "Disponible", paciente: null },
-                  { numero: "203", piso: 2, tipo: "Individual", estado: "Disponible", paciente: null },
-                  { numero: "204", piso: 2, tipo: "Suite", estado: "Ocupada", paciente: "Carlos López" },
-                ].map((habitacion) => (
-                  <div
-                    key={habitacion.numero}
-                    className={`border-2 rounded-xl p-4 ${
-                      habitacion.estado === "Disponible"
-                        ? "border-green-300 bg-green-50"
-                        : habitacion.estado === "Ocupada"
-                          ? "border-blue-300 bg-blue-50"
-                          : "border-orange-300 bg-orange-50"
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900">#{habitacion.numero}</h3>
-                        <p className="text-sm text-gray-600">Piso {habitacion.piso}</p>
-                      </div>
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          habitacion.estado === "Disponible"
-                            ? "bg-green-200 text-green-800"
-                            : habitacion.estado === "Ocupada"
-                              ? "bg-blue-200 text-blue-800"
-                              : "bg-orange-200 text-orange-800"
-                        }`}
-                      >
-                        {habitacion.estado}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">{habitacion.tipo}</p>
-                    {habitacion.paciente && (
-                      <p className="text-sm font-medium text-gray-900">Paciente: {habitacion.paciente}</p>
-                    )}
-                    <button className="mt-3 w-full px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors">
-                      Ver detalles
-                    </button>
-                  </div>
-                ))}
-              </div>
+      {modalPayOpen && (
+        <Modal onClose={() => setModalPayOpen(false)}>
+          <h3 className="text-xl font-semibold mb-2">Registrar pago</h3>
+          <div className="space-y-3">
+            <label className="text-sm text-gray-500">Monto</label>
+            <input type="number" value={payForm.monto} onChange={e => setPayForm({ ...payForm, monto: Number(e.target.value) })} className="w-full rounded-lg border p-2" />
+            <label className="text-sm text-gray-500">Método</label>
+            <select value={payForm.metodo} onChange={e => setPayForm({ ...payForm, metodo: e.target.value })} className="w-full rounded-lg border p-2">
+              <option>Transferencia</option>
+              <option>Tarjeta</option>
+              <option>Efectivo</option>
+            </select>
+            <div className="flex gap-2 mt-2">
+              <button onClick={registerPartial} disabled={loading} className="px-4 py-2 bg-green-600 text-white rounded-lg">{loading ? 'Registrando...' : 'Registrar pago'}</button>
+              <button onClick={() => setModalPayOpen(false)} disabled={loading} className="px-4 py-2 bg-gray-100 rounded-lg">Cancelar</button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
+    </>
+  )
+}
 
-      {activeModal === "consultas" && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Gestión de Consultas</h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+/* -------------------- Reportes -------------------- */
+function ReportesContent() {
+  const reportData = { ocupacion: 74, stockBajo: 12, facturacionPendiente: 420000 }
+  const [generating, setGenerating] = useState(false)
 
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-600 mb-1">Total atendidas</p>
-                  <p className="text-3xl font-bold text-blue-700">760</p>
-                </div>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm text-green-600 mb-1">Hoy</p>
-                  <p className="text-3xl font-bold text-green-700">24</p>
-                </div>
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <p className="text-sm text-purple-600 mb-1">Cirugías hoy</p>
-                  <p className="text-3xl font-bold text-purple-700">4</p>
-                </div>
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <p className="text-sm text-orange-600 mb-1">Pendientes</p>
-                  <p className="text-3xl font-bold text-orange-700">12</p>
-                </div>
-              </div>
+  const gen = async (tipo) => {
+    setGenerating(true)
+    await new Promise(r => setTimeout(r, 900))
+    setGenerating(false)
+    toast.success(`${tipo} generado (simulado)`)
+  }
 
-              <div className="mb-6 flex gap-4">
-                <input
-                  type="date"
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <select className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option>Todas las especialidades</option>
-                  <option>Cardiología</option>
-                  <option>Pediatría</option>
-                  <option>Neurología</option>
-                </select>
-                <select className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option>Todos los estados</option>
-                  <option>Completada</option>
-                  <option>En proceso</option>
-                  <option>Pendiente</option>
-                </select>
-              </div>
+  return (
+    <>
+      <h1 className="text-3xl font-bold text-gray-900 mb-4">Reportes</h1>
+      <p className="text-gray-600 mb-6">Generación de reportes: ocupación, stock bajo, facturación pendiente.</p>
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Fecha
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Paciente
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Médico
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Especialidad
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Tipo
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Estado
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Acciones
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {[
-                      {
-                        fecha: "2025-10-07",
-                        paciente: "Ana Martínez",
-                        medico: "Dr. Sánchez",
-                        especialidad: "Cardiología",
-                        tipo: "Consulta",
-                        estado: "Completada",
-                      },
-                      {
-                        fecha: "2025-10-07",
-                        paciente: "Pedro Gómez",
-                        medico: "Dra. Fernández",
-                        especialidad: "Pediatría",
-                        tipo: "Consulta",
-                        estado: "Completada",
-                      },
-                      {
-                        fecha: "2025-10-07",
-                        paciente: "Laura Silva",
-                        medico: "Dr. Torres",
-                        especialidad: "Neurología",
-                        tipo: "Cirugía",
-                        estado: "En proceso",
-                      },
-                      {
-                        fecha: "2025-10-08",
-                        paciente: "Carlos Ruiz",
-                        medico: "Dra. Ruiz",
-                        especialidad: "Traumatología",
-                        tipo: "Cirugía",
-                        estado: "Pendiente",
-                      },
-                      {
-                        fecha: "2025-10-08",
-                        paciente: "María López",
-                        medico: "Dr. Morales",
-                        especialidad: "Cardiología",
-                        tipo: "Consulta",
-                        estado: "Pendiente",
-                      },
-                    ].map((consulta, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{consulta.fecha}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {consulta.paciente}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{consulta.medico}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{consulta.especialidad}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-3 py-1 text-xs font-medium rounded-full ${
-                              consulta.tipo === "Cirugía"
-                                ? "bg-purple-100 text-purple-800"
-                                : "bg-blue-100 text-blue-800"
-                            }`}
-                          >
-                            {consulta.tipo}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-3 py-1 text-xs font-medium rounded-full ${
-                              consulta.estado === "Completada"
-                                ? "bg-green-100 text-green-800"
-                                : consulta.estado === "En proceso"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : "bg-yellow-100 text-yellow-800"
-                            }`}
-                          >
-                            {consulta.estado}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <button className="text-blue-600 hover:text-blue-800">Ver detalles</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="bg-white p-6 rounded-xl border border-gray-200">
+          <h3 className="font-semibold mb-2">Ocupación</h3>
+          <p className="text-3xl font-bold mb-2">{reportData.ocupacion}%</p>
+          <button onClick={() => gen('Reporte de ocupación')} className="px-3 py-2 bg-blue-600 text-white rounded-lg">{generating ? 'Generando...' : 'Exportar PDF'}</button>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl border border-gray-200">
+          <h3 className="font-semibold mb-2">Stock bajo</h3>
+          <p className="text-3xl font-bold mb-2">{reportData.stockBajo}</p>
+          <button onClick={() => gen('Reporte de stock')} className="px-3 py-2 bg-blue-600 text-white rounded-lg">{generating ? 'Generando...' : 'Exportar CSV'}</button>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl border border-gray-200">
+          <h3 className="font-semibold mb-2">Facturación pendiente</h3>
+          <p className="text-3xl font-bold mb-2">${reportData.facturacionPendiente.toLocaleString()}</p>
+          <button onClick={() => gen('Reporte de facturación pendiente')} className="px-3 py-2 bg-blue-600 text-white rounded-lg">{generating ? 'Generando...' : 'Exportar'}</button>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <h3 className="font-semibold mb-4">Generar reporte personalizado</h3>
+        <div className="flex gap-2">
+          <select className="rounded-lg border p-2">
+            <option>Últimos 30 días</option>
+            <option>Últimos 3 meses</option>
+            <option>Año fiscal</option>
+          </select>
+          <button onClick={() => gen('Reporte personalizado')} className="px-4 py-2 bg-blue-600 text-white rounded-lg">{generating ? 'Generando...' : 'Generar'}</button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+/* -------------------- Auditoría -------------------- */
+function AuditoriaContent() {
+  const [logs] = useState([
+    { id: 1, who: "admin", action: "Creó usuario Dr. Juan Pérez", when: "2025-04-10 09:12" },
+    { id: 2, who: "sistema", action: "Stock Paracetamol modificado", when: "2025-04-11 14:03" },
+  ])
+
+  return (
+    <>
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">Auditoría</h1>
+      <p className="text-gray-600 mb-4">Registro de eventos del sistema y cambios importantes.</p>
+
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-6 py-3 text-xs text-gray-500">Usuario</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Acción</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Fecha / Hora</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {logs.map(l => (
+                <tr key={l.id}>
+                  <td className="px-6 py-4">{l.who}</td>
+                  <td className="px-6 py-4">{l.action}</td>
+                  <td className="px-6 py-4">{l.when}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  )
+}
+
+/* -------------------- Especialidades -------------------- */
+function EspecialidadesContent() {
+  const [esp, setEsp] = useState([
+    { id: 1, nombre: "Cardiología", es_quirurgica: false },
+    { id: 2, nombre: "Cirugía General", es_quirurgica: true },
+  ])
+  const [modalOpen, setModalOpen] = useState(false)
+  const [form, setForm] = useState({ nombre: "", es_quirurgica: false })
+  const [editing, setEditing] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => { if (editing) setForm({ nombre: editing.nombre, es_quirurgica: editing.es_quirurgica }) }, [editing])
+
+  const openCreate = () => { setEditing(null); setForm({ nombre: "", es_quirurgica: false }); setModalOpen(true) }
+  const openEdit = (e) => { setEditing(e); setModalOpen(true) }
+
+  const save = async () => {
+    if (!form.nombre) { toast.error('Nombre requerido'); return }
+    setLoading(true)
+    await new Promise(r => setTimeout(r, 600))
+    if (editing) {
+      setEsp(esp.map(x => x.id === editing.id ? { ...x, ...form } : x))
+      toast.success('Especialidad actualizada (simulado)')
+    } else {
+      setEsp([{ id: Date.now(), ...form }, ...esp])
+      toast.success('Especialidad agregada (simulado)')
+    }
+    setModalOpen(false)
+    setEditing(null)
+    setLoading(false)
+  }
+
+  const toggleSurgical = (id) => { setEsp(esp.map(e => e.id === id ? { ...e, es_quirurgica: !e.es_quirurgica } : e)); toast.success('Actualizado (simulado)') }
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Especialidades</h1>
+        <div>
+          <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white rounded-lg"><Plus className="w-4 h-4" /> Nuevo</button>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-6 py-3 text-xs text-gray-500">Nombre</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Es Quirúrgica</th>
+                <th className="px-6 py-3 text-xs text-gray-500">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {esp.map(e => (
+                <tr key={e.id}>
+                  <td className="px-6 py-4">{e.nombre}</td>
+                  <td className="px-6 py-4">{e.es_quirurgica ? 'Sí' : 'No'}</td>
+                  <td className="px-6 py-4 flex gap-2">
+                    <button onClick={() => openEdit(e)} className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-sm"><Edit className="w-4 h-4" /></button>
+                    <button onClick={() => toggleSurgical(e.id)} className={`px-2 py-1 rounded text-sm ${e.es_quirurgica ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>{e.es_quirurgica ? 'Quitar quirúrgica' : 'Marcar quirúrgica'}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {modalOpen && (
+        <Modal onClose={() => setModalOpen(false)}>
+          <h3 className="text-xl font-semibold mb-2">{editing ? 'Editar especialidad' : 'Nueva especialidad'}</h3>
+          <div className="space-y-3">
+            <label className="text-sm text-gray-500">Nombre</label>
+            <input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} className="w-full rounded-lg border p-2" />
+            <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={form.es_quirurgica} onChange={e => setForm({ ...form, es_quirurgica: e.target.checked })} /> Marcar como quirúrgica</label>
+            <div className="flex gap-2 mt-2">
+              <button onClick={save} disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded-lg">{loading ? 'Guardando...' : 'Guardar'}</button>
+              <button onClick={() => setModalOpen(false)} disabled={loading} className="px-4 py-2 bg-gray-100 rounded-lg">Cancelar</button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
+    </>
+  )
+}
 
-      {activeModal === "estudios" && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Estudios Médicos y Cirugías</h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+/* -------------------- Reutilizables: Modal y pequeños componentes -------------------- */
 
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-blue-900 mb-4">Estudios Pendientes</h3>
-                  <div className="space-y-3">
-                    {[
-                      { paciente: "Ana Martínez", tipo: "Resonancia Magnética", fecha: "2025-10-08" },
-                      { paciente: "Pedro Gómez", tipo: "Tomografía", fecha: "2025-10-08" },
-                      { paciente: "Laura Silva", tipo: "Ecografía", fecha: "2025-10-09" },
-                    ].map((estudio, index) => (
-                      <div key={index} className="bg-white p-4 rounded-lg">
-                        <p className="font-medium text-gray-900">{estudio.paciente}</p>
-                        <p className="text-sm text-gray-600">{estudio.tipo}</p>
-                        <p className="text-sm text-blue-600">{estudio.fecha}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+function Modal({ children, onClose }) {
+  // Modal sencillo con backdrop. Cierra al click en overlay.
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div onClick={onClose} className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+      <div className="relative bg-white rounded-xl p-6 max-w-2xl w-full border border-gray-200 z-10 shadow-lg">
+        {children}
+      </div>
+    </div>
+  )
+}
 
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-purple-900 mb-4">Cirugías Programadas Hoy</h3>
-                  <div className="space-y-3">
-                    {[
-                      { paciente: "Carlos Ruiz", tipo: "Cirugía Cardiovascular", hora: "08:00", sala: "Quirófano 1" },
-                      { paciente: "María López", tipo: "Cirugía Ortopédica", hora: "11:00", sala: "Quirófano 2" },
-                      { paciente: "José Fernández", tipo: "Cirugía General", hora: "14:00", sala: "Quirófano 1" },
-                      { paciente: "Carmen Díaz", tipo: "Cirugía Neurológica", hora: "16:00", sala: "Quirófano 3" },
-                    ].map((cirugia, index) => (
-                      <div key={index} className="bg-white p-4 rounded-lg">
-                        <p className="font-medium text-gray-900">{cirugia.paciente}</p>
-                        <p className="text-sm text-gray-600">{cirugia.tipo}</p>
-                        <div className="flex justify-between mt-2">
-                          <p className="text-sm text-purple-600">{cirugia.hora}</p>
-                          <p className="text-sm text-gray-600">{cirugia.sala}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+function SidebarButton({ icon: Icon, label, section, active, setActive }) {
+  const isActive = active === section
+  return (
+    <button onClick={() => setActive(section)} className={`w-full flex items-center gap-3 px-4 py-3 mb-2 text-left rounded-lg transition-colors ${isActive ? "bg-blue-600 text-white" : "text-gray-700 hover:bg-gray-100"}`}>
+      <Icon className="w-5 h-5" />
+      <span className="font-medium">{label}</span>
+    </button>
+  )
+}
 
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Historial de Estudios</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Fecha
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Paciente
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Tipo de estudio
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Médico solicitante
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Estado
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Acciones
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {[
-                        {
-                          fecha: "2025-10-06",
-                          paciente: "Roberto Sánchez",
-                          tipo: "Análisis de sangre",
-                          medico: "Dr. Morales",
-                          estado: "Completado",
-                        },
-                        {
-                          fecha: "2025-10-06",
-                          paciente: "Patricia Díaz",
-                          tipo: "Radiografía",
-                          medico: "Dra. Ruiz",
-                          estado: "Completado",
-                        },
-                        {
-                          fecha: "2025-10-07",
-                          paciente: "Miguel Torres",
-                          tipo: "Electrocardiograma",
-                          medico: "Dr. Sánchez",
-                          estado: "Completado",
-                        },
-                      ].map((estudio, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{estudio.fecha}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {estudio.paciente}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{estudio.tipo}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{estudio.medico}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                              {estudio.estado}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button className="text-blue-600 hover:text-blue-800">Ver resultados</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeModal === "estadisticas" && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Estadísticas y Logs del Sistema</h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-600 mb-1">Pacientes atendidos</p>
-                  <p className="text-3xl font-bold text-blue-700">2,405</p>
-                  <p className="text-xs text-blue-600 mt-1">+12% vs mes anterior</p>
-                </div>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm text-green-600 mb-1">Ciclos clínicos</p>
-                  <p className="text-3xl font-bold text-green-700">742</p>
-                  <p className="text-xs text-green-600 mt-1">+8% vs mes anterior</p>
-                </div>
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <p className="text-sm text-purple-600 mb-1">Cirugías realizadas</p>
-                  <p className="text-3xl font-bold text-purple-700">156</p>
-                  <p className="text-xs text-purple-600 mt-1">+5% vs mes anterior</p>
-                </div>
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <p className="text-sm text-orange-600 mb-1">Tasa de ocupación</p>
-                  <p className="text-3xl font-bold text-orange-700">84%</p>
-                  <p className="text-xs text-orange-600 mt-1">-3% vs mes anterior</p>
-                </div>
-              </div>
-
-              <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Actividad Reciente del Sistema</h3>
-                <div className="space-y-3">
-                  {[
-                    {
-                      usuario: "Admin - Juan Pérez",
-                      accion: "Creó nuevo usuario médico",
-                      tiempo: "Hace 5 minutos",
-                      tipo: "success",
-                    },
-                    {
-                      usuario: "Dr. Sánchez",
-                      accion: "Actualizó historial clínico de paciente #1234",
-                      tiempo: "Hace 12 minutos",
-                      tipo: "info",
-                    },
-                    {
-                      usuario: "Enfermera - María García",
-                      accion: "Registró signos vitales en habitación 201",
-                      tiempo: "Hace 18 minutos",
-                      tipo: "info",
-                    },
-                    {
-                      usuario: "Sistema",
-                      accion: "Backup automático completado",
-                      tiempo: "Hace 1 hora",
-                      tipo: "success",
-                    },
-                    {
-                      usuario: "Admin - Juan Pérez",
-                      accion: "Modificó configuración de turnos",
-                      tiempo: "Hace 2 horas",
-                      tipo: "warning",
-                    },
-                    {
-                      usuario: "Dr. Torres",
-                      accion: "Solicitó estudios médicos para paciente #5678",
-                      tiempo: "Hace 3 horas",
-                      tipo: "info",
-                    },
-                  ].map((log, index) => (
-                    <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
-                      <div
-                        className={`w-2 h-2 rounded-full mt-2 ${
-                          log.tipo === "success"
-                            ? "bg-green-500"
-                            : log.tipo === "warning"
-                              ? "bg-orange-500"
-                              : "bg-blue-500"
-                        }`}
-                      />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{log.usuario}</p>
-                        <p className="text-sm text-gray-600">{log.accion}</p>
-                        <p className="text-xs text-gray-500 mt-1">{log.tiempo}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Especialidades más solicitadas</h3>
-                  <div className="space-y-3">
-                    {[
-                      { especialidad: "Cardiología", consultas: 245, porcentaje: 85 },
-                      { especialidad: "Pediatría", consultas: 198, porcentaje: 70 },
-                      { especialidad: "Traumatología", consultas: 167, porcentaje: 60 },
-                      { especialidad: "Neurología", consultas: 132, porcentaje: 45 },
-                    ].map((item, index) => (
-                      <div key={index}>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-sm font-medium text-gray-700">{item.especialidad}</span>
-                          <span className="text-sm text-gray-600">{item.consultas} consultas</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${item.porcentaje}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Rendimiento del personal</h3>
-                  <div className="space-y-3">
-                    {[
-                      { nombre: "Dr. Roberto Sánchez", consultas: 87, satisfaccion: 98 },
-                      { nombre: "Dra. Laura Fernández", consultas: 76, satisfaccion: 96 },
-                      { nombre: "Dr. Miguel Torres", consultas: 65, satisfaccion: 94 },
-                      { nombre: "Dra. Carmen Ruiz", consultas: 58, satisfaccion: 97 },
-                    ].map((medico, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{medico.nombre}</p>
-                          <p className="text-xs text-gray-600">{medico.consultas} consultas este mes</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-green-600">{medico.satisfaccion}%</p>
-                          <p className="text-xs text-gray-600">Satisfacción</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+function CardSimple({ title, value, subtitle, icon }) {
+  return (
+    <div className="bg-white rounded-xl p-6 border border-gray-200 flex items-center justify-between">
+      <div>
+        <p className="text-sm text-gray-500">{title}</p>
+        <p className="text-2xl font-semibold text-gray-900">{value}</p>
+        <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+      </div>
+      <div>{icon}</div>
     </div>
   )
 }

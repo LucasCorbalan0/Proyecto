@@ -14,7 +14,7 @@ const execute = async (sql, params) => {
 const pool = mysql.createPool({
     host: 'localhost',
     user: 'root',
-    password: '155188306',
+    password: 'harakiri.02',
     database: 'hospitaldb', // <<-- Nombre de tu BD verificada
     waitForConnections: true,
     connectionLimit: 10,
