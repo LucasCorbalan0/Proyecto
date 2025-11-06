@@ -1,16 +1,22 @@
 // Archivo: Backend/controllers/adminController.js
+
 const asyncHandler = require('express-async-handler');
-const { execute, pool } = require('../config/database'); 
+const { execute, pool } = require('../config/database');
 const bcrypt = require('bcryptjs');
 
-// 🔹 Helper para obtener el ID del rol por su nombre
-const getRoleIdByName = async (roleName) => {
-    const [roles] = await execute('SELECT id_rol_sistema FROM rolessistema WHERE nombre = ?', [roleName]);
+/* ---------------------------------------------------
+   Función auxiliar: obtener el ID de un rol 
+   según su nombre.
+--------------------------------------------------- */
+const obtenerIdRolPorNombre = async (nombreRol) => {
+    const [roles] = await execute('SELECT id_rol_sistema FROM rolessistema WHERE nombre = ?', [nombreRol]);
     return roles.length > 0 ? roles[0].id_rol_sistema : null;
 };
 
-// 🔹 [GET] Obtener todos los usuarios del sistema
-const getUsers = asyncHandler(async (req, res) => {
+/* ---------------------------------------------------
+   GET - Obtener todos los usuarios del sistema
+--------------------------------------------------- */
+const obtenerUsuarios = asyncHandler(async (req, res) => {
     const query = `
         SELECT
             u.id_usuario AS id,
@@ -33,75 +39,76 @@ const getUsers = asyncHandler(async (req, res) => {
             u.id_usuario DESC
     `;
 
-    // ✅ CORRECCIÓN: execute() ya devuelve las filas, no hace falta desestructurar
-    const users = await execute(query);
+    const usuarios = await execute(query);
 
-    const formattedUsers = users.map(user => ({
-        ...user,
-        nombre: `${user.nombre_persona} ${user.apellido_persona}`,
-        activo: user.activo === 1,
-        fechaNacimiento: user.fecha_nacimiento 
-            ? new Date(user.fecha_nacimiento).toISOString().split('T')[0] 
+    const usuariosFormateados = usuarios.map(usuario => ({
+        ...usuario,
+        nombre: `${usuario.nombre_persona} ${usuario.apellido_persona}`,
+        activo: usuario.activo === 1,
+        fechaNacimiento: usuario.fecha_nacimiento 
+            ? new Date(usuario.fecha_nacimiento).toISOString().split('T')[0] 
             : '',
     }));
 
-    res.json(formattedUsers);
+    res.json(usuariosFormateados);
 });
 
-// 🔹 [POST] Crear un nuevo usuario
-const createUser = asyncHandler(async (req, res) => {
+/* ---------------------------------------------------
+   POST - Crear un nuevo usuario
+--------------------------------------------------- */
+const crearUsuario = asyncHandler(async (req, res) => {
     const { nombre, apellido, dni, email, fechaNacimiento, telefono, username, rol } = req.body;
 
     if (!nombre || !apellido || !dni || !email || !username || !rol) {
         return res.status(400).json({ message: 'Por favor, complete todos los campos requeridos.' });
     }
 
-    let connection;
+    let conexion;
     try {
-        connection = await pool.getConnection(); 
-        await connection.beginTransaction();
+        conexion = await pool.getConnection(); 
+        await conexion.beginTransaction();
 
-        const id_rol_sistema = await getRoleIdByName(rol);
+        const id_rol_sistema = await obtenerIdRolPorNombre(rol);
         if (!id_rol_sistema) throw new Error(`Rol "${rol}" no encontrado.`);
 
         const password = dni.toString();
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // 1️⃣ Insertar en personas
-        const [personResult] = await connection.execute(
+        // 1. Insertar en personas
+        const [personaResultado] = await conexion.execute(
             `INSERT INTO personas (nombre, apellido, dni, email, fecha_nacimiento, telefono) 
              VALUES (?, ?, ?, ?, ?, ?)`,
             [nombre, apellido, dni, email, fechaNacimiento, telefono]
         );
-        const id_persona = personResult.insertId;
+        const id_persona = personaResultado.insertId;
 
-        // 2️⃣ Insertar en usuarios
-        const [userResult] = await connection.execute(
+        // 2. Insertar en usuarios
+        const [usuarioResultado] = await conexion.execute(
             `INSERT INTO usuarios (nombre_usuario, password, id_persona, id_rol_sistema, activo) 
              VALUES (?, ?, ?, ?, 1)`,
             [username, hashedPassword, id_persona, id_rol_sistema]
         );
-        const id_usuario = userResult.insertId;
+        const id_usuario = usuarioResultado.insertId;
 
-        // 3️⃣ Si el rol es paciente, insertar en sus tablas correspondientes
+        // 3. Si el rol es paciente, insertar registros adicionales
         if (id_rol_sistema === 6) {
-            const [pacienteResult] = await connection.execute(
+            const [pacienteResultado] = await conexion.execute(
                 'INSERT INTO pacientes (id_persona) VALUES (?)', 
                 [id_persona]
             );
-            await connection.execute(
+            await conexion.execute(
                 'INSERT INTO historiasclinicas (id_paciente, fecha_creacion) VALUES (?, CURDATE())',
-                [pacienteResult.insertId]
+                [pacienteResultado.insertId]
             );
         }
 
-        await connection.commit();
+        await conexion.commit();
         res.status(201).json({ message: `Usuario ${nombre} ${apellido} creado exitosamente.` });
 
     } catch (error) {
-        if (connection) await connection.rollback();
-        console.error('Error en la creación de usuario:', error);
+        if (conexion) await conexion.rollback();
+        console.error('Error al crear el usuario:', error);
 
         if (error.code === 'ER_DUP_ENTRY') {
             res.status(409).json({ message: 'Ya existe un usuario con ese DNI, Email o Nombre de Usuario.' });
@@ -109,98 +116,107 @@ const createUser = asyncHandler(async (req, res) => {
             res.status(500).json({ message: 'Error en el servidor al crear el usuario.', error: error.message });
         }
     } finally {
-        if (connection) connection.release();
+        if (conexion) conexion.release();
     }
 });
 
-// 🔹 [PUT] Actualizar un usuario existente
-const updateUser = asyncHandler(async (req, res) => {
+/* ---------------------------------------------------
+   PUT - Actualizar un usuario existente
+--------------------------------------------------- */
+const actualizarUsuario = asyncHandler(async (req, res) => {
     const { id } = req.params; 
     const { nombre, apellido, dni, email, fechaNacimiento, telefono, username, rol } = req.body;
 
-    let connection;
+    let conexion;
     try {
-        connection = await pool.getConnection();
-        await connection.beginTransaction();
+        conexion = await pool.getConnection();
+        await conexion.beginTransaction();
         
-        const id_rol_sistema = await getRoleIdByName(rol);
+        const id_rol_sistema = await obtenerIdRolPorNombre(rol);
 
-        // Obtener id_persona
-        const [userCheck] = await connection.execute(
+        // Verificar si el usuario existe
+        const [usuarioVerificado] = await conexion.execute(
             'SELECT id_persona FROM usuarios WHERE id_usuario = ?', 
             [id]
         );
-        if (userCheck.length === 0) {
+        if (usuarioVerificado.length === 0) {
             return res.status(404).json({ message: 'Usuario no encontrado.' });
         }
-        const id_persona = userCheck[0].id_persona;
+        const id_persona = usuarioVerificado[0].id_persona;
 
-        // Actualizar personas
-        await connection.execute(
+        // Actualizar datos personales
+        await conexion.execute(
             `UPDATE personas 
              SET nombre = ?, apellido = ?, dni = ?, email = ?, fecha_nacimiento = ?, telefono = ? 
              WHERE id_persona = ?`,
             [nombre, apellido, dni, email, fechaNacimiento, telefono, id_persona]
         );
 
-        // Actualizar usuarios
-        await connection.execute(
+        // Actualizar usuario
+        await conexion.execute(
             `UPDATE usuarios 
              SET nombre_usuario = ?, id_rol_sistema = ? 
              WHERE id_usuario = ?`,
             [username, id_rol_sistema, id]
         );
         
-        await connection.commit();
+        await conexion.commit();
         res.json({ message: `Usuario ID ${id} actualizado exitosamente.` });
 
     } catch (error) {
-        if (connection) await connection.rollback();
-        console.error('Error en la actualización de usuario:', error);
+        if (conexion) await conexion.rollback();
+        console.error('Error al actualizar el usuario:', error);
         if (error.code === 'ER_DUP_ENTRY') {
             res.status(409).json({ message: 'Ya existe un DNI, Email o Nombre de Usuario con ese valor.' });
         } else {
             res.status(500).json({ message: 'Error en el servidor al actualizar el usuario.', error: error.message });
         }
     } finally {
-        if (connection) connection.release();
+        if (conexion) conexion.release();
     }
 });
 
-// 🔹 [PUT] Alternar estado activo/inactivo
-const toggleActiveUser = asyncHandler(async (req, res) => {
+/* ---------------------------------------------------
+   PUT - Cambiar el estado activo/inactivo de un usuario
+--------------------------------------------------- */
+const cambiarEstadoUsuario = asyncHandler(async (req, res) => {
     const { id } = req.params; 
-    const [user] = await execute('SELECT activo FROM usuarios WHERE id_usuario = ?', [id]);
+    const [usuario] = await execute('SELECT activo FROM usuarios WHERE id_usuario = ?', [id]);
 
-    if (user.length === 0) {
+    if (usuario.length === 0) {
         return res.status(404).json({ message: 'Usuario no encontrado.' });
     }
 
-    const newStatus = user[0].activo === 1 ? 0 : 1; 
-    await execute('UPDATE usuarios SET activo = ? WHERE id_usuario = ?', [newStatus, id]);
+    const nuevoEstado = usuario[0].activo === 1 ? 0 : 1; 
+    await execute('UPDATE usuarios SET activo = ? WHERE id_usuario = ?', [nuevoEstado, id]);
     
     res.json({ 
-        message: `Estado de usuario ID ${id} actualizado a ${newStatus === 1 ? 'Activo' : 'Desactivado'}.`,
-        newStatus: newStatus === 1 
+        message: `Estado del usuario ID ${id} actualizado a ${nuevoEstado === 1 ? 'Activo' : 'Desactivado'}.`,
+        nuevoEstado: nuevoEstado === 1 
     });
 });
 
-// 🔹 [DELETE] Eliminar un usuario
-const deleteUser = asyncHandler(async (req, res) => {
+/* ---------------------------------------------------
+   DELETE - Eliminar un usuario del sistema
+--------------------------------------------------- */
+const eliminarUsuario = asyncHandler(async (req, res) => {
     const { id } = req.params; 
-    const [deleteResult] = await execute('DELETE FROM usuarios WHERE id_usuario = ?', [id]);
+    const [resultadoEliminacion] = await execute('DELETE FROM usuarios WHERE id_usuario = ?', [id]);
 
-    if (deleteResult.affectedRows === 0) {
+    if (resultadoEliminacion.affectedRows === 0) {
         return res.status(404).json({ message: 'Usuario no encontrado para eliminar.' });
     }
 
     res.json({ message: `Usuario ID ${id} eliminado exitosamente.` });
 });
 
+/* ---------------------------------------------------
+   Exportar controladores
+--------------------------------------------------- */
 module.exports = {
-    getUsers,
-    createUser,
-    updateUser,
-    toggleActiveUser,
-    deleteUser,
+    obtenerUsuarios,
+    crearUsuario,
+    actualizarUsuario,
+    cambiarEstadoUsuario,
+    eliminarUsuario,
 };

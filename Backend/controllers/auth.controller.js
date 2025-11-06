@@ -3,18 +3,20 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { execute } = require('../config/database');
 
-/* ------------------------------
-   LOGIN DE USUARIOS
---------------------------------*/
-const login = asyncHandler(async (req, res) => {
+/* ---------------------------------------------------
+   🔐 INICIO DE SESIÓN (LOGIN)
+--------------------------------------------------- */
+const iniciarSesion = asyncHandler(async (req, res) => {
     const { nombre_usuario, password } = req.body;
 
+    // Verificamos que se hayan enviado ambos campos
     if (!nombre_usuario || !password) {
         res.status(400);
         throw new Error('Por favor complete todos los campos');
     }
 
-    const query = `
+    // Buscamos el usuario en la base de datos
+    const consulta = `
         SELECT u.id_usuario, u.nombre_usuario, u.password, u.id_rol_sistema,
                p.nombre, p.apellido, p.dni, p.email, pac.id_paciente
         FROM usuarios u
@@ -23,25 +25,25 @@ const login = asyncHandler(async (req, res) => {
         WHERE u.nombre_usuario = ?
     `;
 
-    const rows = await execute(query, [nombre_usuario]);
+    const resultado = await execute(consulta, [nombre_usuario]);
 
-    if (rows.length === 0) {
+    if (resultado.length === 0) {
         res.status(401);
         throw new Error('Credenciales inválidas');
     }
 
-    const usuario = rows[0];
-    const isMatch = await bcrypt.compare(password, usuario.password);
+    const usuario = resultado[0];
+    const coincide = await bcrypt.compare(password, usuario.password);
 
-    if (!isMatch) {
+    if (!coincide) {
         res.status(401);
         throw new Error('Credenciales inválidas');
     }
 
-    // ✅ Generar token con ID correcto
+    // Generamos el token JWT
     const token = jwt.sign(
         { 
-            id: usuario.id_usuario,  // 👈 CORREGIDO
+            id: usuario.id_usuario,
             rol: usuario.id_rol_sistema,
             nombre_usuario: usuario.nombre_usuario
         },
@@ -49,7 +51,7 @@ const login = asyncHandler(async (req, res) => {
         { expiresIn: '30d' }
     );
 
-    // ✅ Enviar respuesta con token y usuario
+    // Enviamos el usuario logueado con su token
     res.json({
         token,
         usuario: {
@@ -64,10 +66,10 @@ const login = asyncHandler(async (req, res) => {
     });
 });
 
-/* ------------------------------
-   REGISTRO DE USUARIOS NUEVOS
---------------------------------*/
-const register = asyncHandler(async (req, res) => {
+/* ---------------------------------------------------
+   🧾 REGISTRO DE NUEVOS USUARIOS
+--------------------------------------------------- */
+const registrarUsuario = asyncHandler(async (req, res) => {
     console.log('Datos recibidos:', req.body);
     
     const {
@@ -83,12 +85,14 @@ const register = asyncHandler(async (req, res) => {
         id_rol_sistema
     } = req.body;
 
+    // Verificamos que no falte ningún dato importante
     if (!nombre || !apellido || !dni || !fecha_nacimiento || !email || !nombre_usuario || !password || !genero) {
         res.status(400);
         throw new Error('Por favor complete todos los campos requeridos');
     }
 
-    const existingData = await execute(
+    // Comprobamos si ya existe ese usuario, DNI o email
+    const datosExistentes = await execute(
         `
         SELECT u.nombre_usuario, p.dni, p.email
         FROM usuarios u
@@ -100,21 +104,23 @@ const register = asyncHandler(async (req, res) => {
         [nombre_usuario, dni, email]
     );
 
-    if (existingData.length > 0) {
+    if (datosExistentes.length > 0) {
         res.status(400);
-        if (existingData[0].nombre_usuario === nombre_usuario) {
+        if (datosExistentes[0].nombre_usuario === nombre_usuario) {
             throw new Error('El nombre de usuario ya está registrado');
-        } else if (existingData[0].dni === dni) {
+        } else if (datosExistentes[0].dni === dni) {
             throw new Error('El DNI ya está registrado');
         } else {
             throw new Error('El email ya está registrado');
         }
     }
 
+    // Encriptamos la contraseña antes de guardarla
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const passwordEncriptada = await bcrypt.hash(password, salt);
 
-    const personaResult = await execute(
+    // Insertamos los datos personales en la tabla personas
+    const resultadoPersona = await execute(
         `
         INSERT INTO personas (
             nombre,
@@ -137,12 +143,13 @@ const register = asyncHandler(async (req, res) => {
         ]
     );
 
-    if (!personaResult.insertId) {
+    if (!resultadoPersona.insertId) {
         res.status(400);
         throw new Error('Error al registrar los datos personales');
     }
 
-    const usuarioResult = await execute(
+    // Insertamos los datos del usuario (login)
+    const resultadoUsuario = await execute(
         `
         INSERT INTO usuarios (
             id_persona,
@@ -152,21 +159,22 @@ const register = asyncHandler(async (req, res) => {
         ) VALUES (?, ?, ?, ?)
         `,
         [
-            personaResult.insertId,
+            resultadoPersona.insertId,
             nombre_usuario,
-            hashedPassword,
+            passwordEncriptada,
             id_rol_sistema || 6
         ]
     );
 
-    if (usuarioResult.affectedRows === 1) {
+    // Si es paciente, también lo agregamos en la tabla de pacientes
+    if (resultadoUsuario.affectedRows === 1) {
         await execute(
             `INSERT INTO pacientes (id_persona) VALUES (?)`,
-            [personaResult.insertId]
+            [resultadoPersona.insertId]
         );
 
         res.status(201).json({
-            message: 'Usuario registrado exitosamente'
+            mensaje: 'Usuario registrado exitosamente'
         });
     } else {
         res.status(400);
@@ -174,25 +182,33 @@ const register = asyncHandler(async (req, res) => {
     }
 });
 
-/* ------------------------------
-   PERFIL DE USUARIO LOGUEADO
---------------------------------*/
-const getProfile = asyncHandler(async (req, res) => {
-    const rows = await execute(
-        'SELECT id_usuario, nombre, apellido, dni, fecha_nacimiento, genero, email, telefono, nombre_usuario, id_rol_sistema FROM usuarios WHERE id_usuario = ?',
+/* ---------------------------------------------------
+   👤 PERFIL DEL USUARIO LOGUEADO
+--------------------------------------------------- */
+const obtenerPerfil = asyncHandler(async (req, res) => {
+    const resultado = await execute(
+        `
+        SELECT id_usuario, nombre, apellido, dni, fecha_nacimiento, genero, 
+               email, telefono, nombre_usuario, id_rol_sistema 
+        FROM usuarios 
+        WHERE id_usuario = ?
+        `,
         [req.user.id]
     );
 
-    if (rows.length === 0) {
+    if (resultado.length === 0) {
         res.status(404);
         throw new Error('Usuario no encontrado');
     }
 
-    res.json(rows[0]);
+    res.json(resultado[0]);
 });
 
+/* ---------------------------------------------------
+   Exportamos las funciones para usarlas en las rutas
+--------------------------------------------------- */
 module.exports = {
-    login,
-    register,
-    getProfile
+    iniciarSesion,
+    registrarUsuario,
+    obtenerPerfil
 };

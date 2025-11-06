@@ -1,6 +1,6 @@
 import apiClient from './apiClient'; 
 
-// Base path que coincide con el backend
+
 const BASE_PATH = '/admin/users'; 
 
 // [GET] Obtener todos los usuarios

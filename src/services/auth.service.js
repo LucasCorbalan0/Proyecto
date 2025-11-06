@@ -1,4 +1,3 @@
-// src/services/auth.service.js
 import apiClient from './apiClient.js'; // Importamos nuestro cliente Axios
 
 // Llama a POST /api/auth/login

@@ -1,10 +1,12 @@
+// Archivo: Backend/controllers/pacienteController.js
+
 const asyncHandler = require('express-async-handler');
 const { execute } = require('../config/database');
 
-const getDashboardPaciente = asyncHandler(async (req, res) => {
+// Panel principal del paciente
+const obtenerDashboardPaciente = asyncHandler(async (req, res) => {
     const { id_paciente } = req.params;
 
-    // Obtener datos del paciente
     const [pacienteRows] = await execute(`
         SELECT p.nombre, p.apellido, p.dni, p.email
         FROM pacientes pac
@@ -17,7 +19,7 @@ const getDashboardPaciente = asyncHandler(async (req, res) => {
         throw new Error('Paciente no encontrado');
     }
 
-    // Obtener próximos turnos
+    // Próximos turnos
     const [turnosRows] = await execute(`
         SELECT t.*, p.nombre as nombre_medico, p.apellido as apellido_medico, e.nombre as especialidad
         FROM turnos t
@@ -31,7 +33,7 @@ const getDashboardPaciente = asyncHandler(async (req, res) => {
         LIMIT 5
     `, [id_paciente]);
 
-    // Obtener últimos estudios médicos
+    // Últimos estudios médicos
     const [estudiosRows] = await execute(`
         SELECT em.*, p.nombre as nombre_medico, p.apellido as apellido_medico
         FROM estudios_medicos em
@@ -43,7 +45,7 @@ const getDashboardPaciente = asyncHandler(async (req, res) => {
         LIMIT 5
     `, [id_paciente]);
 
-    // Obtener recetas próximas a vencer
+    // Recetas próximas a vencer
     const [recetasRows] = await execute(`
         SELECT r.*, m.nombre as medicamento,
                p.nombre as nombre_medico, p.apellido as apellido_medico
@@ -68,7 +70,8 @@ const getDashboardPaciente = asyncHandler(async (req, res) => {
     });
 });
 
-const getRecetasPaciente = asyncHandler(async (req, res) => {
+// Listado de recetas del paciente
+const obtenerRecetasPaciente = asyncHandler(async (req, res) => {
     const { id_paciente } = req.params;
 
     const [recetas] = await execute(`
@@ -88,7 +91,8 @@ const getRecetasPaciente = asyncHandler(async (req, res) => {
     });
 });
 
-const getEstudiosPaciente = asyncHandler(async (req, res) => {
+// Listado de estudios médicos
+const obtenerEstudiosPaciente = asyncHandler(async (req, res) => {
     const { id_paciente } = req.params;
 
     const [estudios] = await execute(`
@@ -106,7 +110,8 @@ const getEstudiosPaciente = asyncHandler(async (req, res) => {
     });
 });
 
-const getTurnosPaciente = asyncHandler(async (req, res) => {
+// Listado de turnos del paciente
+const obtenerTurnosPaciente = asyncHandler(async (req, res) => {
     const { id_paciente } = req.params;
 
     const [turnos] = await execute(`
@@ -126,7 +131,8 @@ const getTurnosPaciente = asyncHandler(async (req, res) => {
     });
 });
 
-const cancelarTurno = asyncHandler(async (req, res) => {
+// Cancelar un turno
+const cancelarTurnoPaciente = asyncHandler(async (req, res) => {
     const { id_turno } = req.params;
 
     await execute(`
@@ -137,14 +143,14 @@ const cancelarTurno = asyncHandler(async (req, res) => {
 
     res.json({
         status: 'success',
-        message: 'Turno cancelado exitosamente'
+        message: 'Turno cancelado correctamente'
     });
 });
 
 module.exports = {
-    getDashboardPaciente,
-    getRecetasPaciente,
-    getEstudiosPaciente,
-    getTurnosPaciente,
-    cancelarTurno
+    obtenerDashboardPaciente,
+    obtenerRecetasPaciente,
+    obtenerEstudiosPaciente,
+    obtenerTurnosPaciente,
+    cancelarTurnoPaciente
 };
