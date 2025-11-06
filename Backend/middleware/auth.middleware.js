@@ -1,54 +1,60 @@
+// Archivo: Backend/middleware/auth.middleware.js
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const db = require('../config/database');
 
-// Middleware para proteger rutas privadas mediante JWT
 const protect = asyncHandler(async (req, res, next) => {
     let token;
 
-    // Verificamos que el encabezado Authorization exista y comience con "Bearer"
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         try {
-            // Obtenemos el token (segunda parte del string "Bearer <token>")
+            // Get token from header
             token = req.headers.authorization.split(' ')[1];
 
-            // Verificamos que el token sea válido y no esté expirado
+            // Verify token
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            // Buscamos el usuario correspondiente en la base de datos
+            // Determinar el ID del usuario en el payload (compatible con 'id' o 'id_usuario')
+            const userId = decoded.id || decoded.id_usuario; 
+            
+            if (!userId) {
+                res.status(401);
+                throw new Error('Token inválido: Falta ID de usuario en el payload');
+            }
+            
+            // Get user from database
             const [rows] = await db.execute(
-                `
-                SELECT u.id, u.nombre_usuario, u.id_rol_sistema, 
-                       p.nombre, p.apellido, p.email, p.dni
+                // CORRECCIÓN: Usamos u.id_usuario y le damos un alias 'id' para consistencia con el frontend
+                `SELECT u.id_usuario AS id, u.nombre_usuario, u.id_rol_sistema, 
+                        p.nombre, p.apellido, p.email, p.dni
                 FROM usuarios u
                 JOIN personas p ON u.id_persona = p.id_persona
-                WHERE u.id = ?
-                `,
-                [decoded.id]
+                WHERE u.id_usuario = ?`, // CORRECCIÓN: Usamos id_usuario en la cláusula WHERE
+                [userId]
             );
 
-            // Si no encontramos al usuario, negamos el acceso
             if (rows.length === 0) {
                 res.status(401);
                 throw new Error('No autorizado');
             }
 
-            // Guardamos los datos del usuario en la request para usarlos en la ruta
             req.user = rows[0];
-            next(); // Continuamos con el siguiente middleware o controlador
-
+            next();
         } catch (error) {
-            console.error('Error en protect middleware:', error.message);
-            res.status(401);
-            throw new Error('No autorizado');
+            console.error('Error de verificación JWT:', error);
+            // Mostrar error específico de SQL solo para diagnóstico interno
+            if (error.code === 'ER_BAD_FIELD_ERROR') {
+                 console.error('❌ Error al ejecutar la consulta SQL:', error.message);
+            }
+            res.status(401).json({ message: 'No autorizado, token fallido o expirado' });
         }
     }
 
-    // Si no se envió ningún token
     if (!token) {
-        res.status(401);
-        throw new Error('No autorizado, no se encontró token');
+        res.status(401).json({ message: 'No autorizado, no hay token' });
     }
 });
 
-module.exports = { protect };
+module.exports = {
+    protect
+};

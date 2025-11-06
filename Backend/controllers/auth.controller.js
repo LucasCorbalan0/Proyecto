@@ -15,7 +15,8 @@ const login = asyncHandler(async (req, res) => {
     }
 
     const query = `
-        SELECT u.*, p.nombre, p.apellido, p.dni, p.email, pac.id_paciente
+        SELECT u.id_usuario, u.nombre_usuario, u.password, u.id_rol_sistema,
+               p.nombre, p.apellido, p.dni, p.email, pac.id_paciente
         FROM usuarios u
         JOIN personas p ON u.id_persona = p.id_persona
         LEFT JOIN pacientes pac ON pac.id_persona = p.id_persona
@@ -37,24 +38,22 @@ const login = asyncHandler(async (req, res) => {
         throw new Error('Credenciales inválidas');
     }
 
-    // Generar token JWT
+    // ✅ Generar token con ID correcto
     const token = jwt.sign(
         { 
-            id: usuario.id,
-            nombre_usuario: usuario.nombre_usuario,
+            id: usuario.id_usuario,  // 👈 CORREGIDO
             rol: usuario.id_rol_sistema,
-            nombre: usuario.nombre,
-            apellido: usuario.apellido,
-            email: usuario.email
+            nombre_usuario: usuario.nombre_usuario
         },
         process.env.JWT_SECRET,
         { expiresIn: '30d' }
     );
 
+    // ✅ Enviar respuesta con token y usuario
     res.json({
         token,
         usuario: {
-            id: usuario.id,
+            id: usuario.id_usuario,
             nombre_usuario: usuario.nombre_usuario,
             rol: usuario.id_rol_sistema,
             nombre: usuario.nombre,
@@ -84,13 +83,11 @@ const register = asyncHandler(async (req, res) => {
         id_rol_sistema
     } = req.body;
 
-    // Validación básica
     if (!nombre || !apellido || !dni || !fecha_nacimiento || !email || !nombre_usuario || !password || !genero) {
         res.status(400);
         throw new Error('Por favor complete todos los campos requeridos');
     }
 
-    // Verificar si ya existe usuario, DNI o email
     const existingData = await execute(
         `
         SELECT u.nombre_usuario, p.dni, p.email
@@ -114,11 +111,9 @@ const register = asyncHandler(async (req, res) => {
         }
     }
 
-    // Encriptar contraseña
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Insertar datos en la tabla personas (ahora con género)
     const personaResult = await execute(
         `
         INSERT INTO personas (
@@ -126,7 +121,7 @@ const register = asyncHandler(async (req, res) => {
             apellido,
             dni,
             fecha_nacimiento,
-            genero,         -- 👈 Se agregó aquí
+            genero,
             email,
             telefono
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -147,7 +142,6 @@ const register = asyncHandler(async (req, res) => {
         throw new Error('Error al registrar los datos personales');
     }
 
-    // Insertar usuario asociado
     const usuarioResult = await execute(
         `
         INSERT INTO usuarios (
@@ -161,11 +155,10 @@ const register = asyncHandler(async (req, res) => {
             personaResult.insertId,
             nombre_usuario,
             hashedPassword,
-            id_rol_sistema || 6 // Por defecto, rol de paciente (6)
+            id_rol_sistema || 6
         ]
     );
 
-    // Si todo salió bien, crear también el registro de paciente
     if (usuarioResult.affectedRows === 1) {
         await execute(
             `INSERT INTO pacientes (id_persona) VALUES (?)`,
@@ -186,7 +179,7 @@ const register = asyncHandler(async (req, res) => {
 --------------------------------*/
 const getProfile = asyncHandler(async (req, res) => {
     const rows = await execute(
-        'SELECT id, nombre, apellido, dni, fecha_nacimiento, genero, email, telefono, nombre_usuario, id_rol_sistema FROM usuarios WHERE id = ?',
+        'SELECT id_usuario, nombre, apellido, dni, fecha_nacimiento, genero, email, telefono, nombre_usuario, id_rol_sistema FROM usuarios WHERE id_usuario = ?',
         [req.user.id]
     );
 

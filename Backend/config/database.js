@@ -10,15 +10,10 @@ const mysql = require('mysql2/promise');
 */
 const pool = mysql.createPool({
     host: 'localhost',
-    user: 'root',
-<<<<<<< HEAD
-    password: '155188306',
+    user: 'root',   
+    password: '155188306', 
     database: 'hospitaldb', // Nombre exacto de tu base de datos
-=======
-    password: 'harakiri.02',
-    database: 'hospitaldb', // <<-- Nombre de tu BD verificada
->>>>>>> origin/main
-    waitForConnections: true,
+    waitForConnections: true, 
     connectionLimit: 10, // Máximo de conexiones simultáneas
     queueLimit: 0       // 0 = sin límite de espera
 });

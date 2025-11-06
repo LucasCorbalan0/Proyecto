@@ -9,6 +9,7 @@ dotenv.config();
 
 // Rutas a importar: Importamos nuestro archivo de rutas
 const authRoutes = require('./routes/authRoutes');
+const adminRoutes = require('./routes/admin.routes');
 
 // Instancio Express
 const app = express();
@@ -26,7 +27,7 @@ app.use(express.json());
 
 // Montamos las rutas de autenticación en /api/auth
 app.use("/api/auth", authRoutes); // Este es el equivalente a app.use("/", usuarios)
-
+app.use("/api/admin", adminRoutes); // Rutas de administración
 // Ruta de prueba
 app.get("/api", (req, res) => {
     res.send("API de Gestión Hospitalaria funcionando.");
