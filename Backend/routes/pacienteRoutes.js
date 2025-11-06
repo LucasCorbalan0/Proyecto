@@ -15,7 +15,6 @@ router.put('/datos/:id_paciente', pacienteController.actualizarDatosPaciente);
 router.get('/estudios/:id_paciente', pacienteController.getEstudios);
 router.get('/recetas/:id_paciente', pacienteController.getRecetas);
 
-// Rutas para consultas
-router.get('/consultas/:id_paciente', pacienteController.getConsultas);
+
 
 module.exports = router;

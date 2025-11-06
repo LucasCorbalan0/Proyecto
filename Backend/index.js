@@ -16,42 +16,53 @@ dotenv.config();
 
 // Verificar que JWT_SECRET esté definido
 if (!process.env.JWT_SECRET) {
-    console.error('⚠️ ADVERTENCIA: JWT_SECRET no está definido en el archivo .env');
-    process.env.JWT_SECRET = 'clave_secreta_temporal_no_usar_en_produccion';
+    console.error('⚠️ ADVERTENCIA: JWT_SECRET no está definido en el archivo .env');
+    process.env.JWT_SECRET = 'clave_secreta_temporal_no_usar_en_produccion';
 }
 
 const app = express();
 const PORT = process.env.PORT || 3001; // Usamos 3001 para no chocar con React (5173)
 
-// Middlewares
+// ------------------------------------------------------------------
+// 🔥 Middlewares GLOBALES: DEBEN IR ANTES DE CUALQUIER DEFINICIÓN DE RUTA
+// ------------------------------------------------------------------
+
+// 1. Permite solicitudes CORS (Cross-Origin Resource Sharing)
 app.use(cors()); 
+
+// 2. Middleware para parsear JSON (esencial para que req.body funcione)
 app.use(express.json()); 
 
+// Middleware para loguear las peticiones (ayuda en desarrollo)
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+// ------------------------------------------------------------------
 // --- Rutas ---
+// ------------------------------------------------------------------
+
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/pacientes', pacienteRoutes);
 
-// Middleware para loguear las peticiones (ayuda en desarrollo)
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
-  next();
-});
-
-// Middleware para manejo de errores
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    message: err.message || 'Error interno del servidor'
-  });
-});
-
 // Ruta de prueba
 app.get('/api', (req, res) => {
-  res.json({ message: "¡API de MediCare Hospital funcionando!" });
+  res.json({ message: "¡API de MediCare Hospital funcionando!" });
+});
+
+// ------------------------------------------------------------------
+// Middleware para manejo de errores (DEBE IR AL FINAL)
+// ------------------------------------------------------------------
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    message: err.message || 'Error interno del servidor'
+  });
 });
 
 // --- Iniciar Servidor ---
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });
