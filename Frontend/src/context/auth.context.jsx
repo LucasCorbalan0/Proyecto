@@ -26,9 +26,13 @@ export function AuthProvider({ children }) {
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
     
+    console.log('AuthContext Init - storedUser:', storedUser, 'token:', token);
+    
     if (storedUser && token) {
       // Si hay datos, los carga al estado
-      setUser(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+      console.log('AuthContext Init - Parsed user:', parsedUser);
+      setUser(parsedUser);
     } else {
       // Si no hay sesión, limpia cualquier resto
       setUser(null);
@@ -40,6 +44,7 @@ export function AuthProvider({ children }) {
 
   // Inicia sesión, guarda los datos y redirige según el rol
   const login = useCallback((userData) => {
+    console.log('AuthContext login - userData:', userData);
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
     

@@ -6,6 +6,8 @@ export const login = async (nombre_usuario, password) => {
     nombre_usuario,
     password
   });
+
+  console.log('Login response:', response.data);
   
   // Guardamos el token JWT
   if (response.data.token) {
@@ -14,6 +16,7 @@ export const login = async (nombre_usuario, password) => {
   
   // Guardamos los datos del usuario
   if (response.data.usuario) {
+    console.log('Usuario recibido:', response.data.usuario);
     if (response.data.usuario.id_paciente) {
       localStorage.setItem('id_paciente', response.data.usuario.id_paciente);
     }
