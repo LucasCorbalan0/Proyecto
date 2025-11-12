@@ -36,7 +36,7 @@ export function CuentaContent() {
           throw new Error('No se encontró el ID del paciente o el token de autenticación');
         }
         
-        const responsePaciente = await apiClient.get(`/pacientes/${idPaciente}`, {
+        const responsePaciente = await apiClient.get(`/pacientes/datos/${idPaciente}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -49,20 +49,23 @@ export function CuentaContent() {
         });
         
         if (responsePaciente.data && responseHistoria.data) {
+          const pacienteData = responsePaciente.data.data ? responsePaciente.data.data[0] : responsePaciente.data;
+          const historiaData = responseHistoria.data.data ? responseHistoria.data.data[0] : responseHistoria.data;
+          
           const datosActualizados = {
-            nombre: responsePaciente.data.nombre,
-            apellido: responsePaciente.data.apellido,
-            email: responsePaciente.data.email,
-            dni: responsePaciente.data.dni,
-            fechaNacimiento: responsePaciente.data.fecha_nacimiento,
-            obraSocial: responsePaciente.data.obra_social,
-            telefono: responsePaciente.data.telefono,
-            direccion: responsePaciente.data.direccion,
-            grupoSanguineo: responseHistoria.data.grupo_sanguineo,
-            alergias: responseHistoria.data.alergias,
-            condicionesCronicas: responseHistoria.data.condiciones_cronicas,
-            medicacionActual: responseHistoria.data.medicacion_actual,
-            antecedentesQuirurgicos: responseHistoria.data.antecedentes_quirurgicos
+            nombre: pacienteData?.nombres || pacienteData?.nombre || '',
+            apellido: pacienteData?.apellidos || pacienteData?.apellido || '',
+            email: pacienteData?.email || '',
+            dni: pacienteData?.documento || pacienteData?.dni || '',
+            fechaNacimiento: pacienteData?.fecha_nacimiento || '',
+            obraSocial: pacienteData?.obra_social || '',
+            telefono: pacienteData?.telefono || '',
+            direccion: pacienteData?.direccion || '',
+            grupoSanguineo: historiaData?.tipo_sangre || '',
+            alergias: historiaData?.alergias_conocidas || '',
+            condicionesCronicas: historiaData?.comorbilidades_cronicas || '',
+            medicacionActual: historiaData?.medicacion_habitual || '',
+            antecedentesQuirurgicos: historiaData?.antecedentes_quirurgicos || ''
           };
           
           setDatosPersonales(datosActualizados);

@@ -17,7 +17,6 @@ export function BuscarMedicosContent() {
       try {
         setLoading(true)
         const data = await api.getEspecialidades()
-        console.log('Especialidades cargadas:', data)
         setEspecialidades(data)
       } catch (err) {
         console.error('Error en loadEspecialidades:', err)
@@ -35,9 +34,7 @@ export function BuscarMedicosContent() {
       
       try {
         setLoading(true)
-        const especialidadNombre = especialidades.find(e => e.id === selectedSpecialty)?.nombre || ''
-        const data = await api.getMedicos(especialidadNombre, '')
-        console.log('Médicos cargados:', data)
+        const data = await api.getMedicos(selectedSpecialty, '')
         setMedicos(data)
         setError(null)
       } catch (err) {
@@ -56,12 +53,18 @@ export function BuscarMedicosContent() {
     try {
       setLoading(true)
       setError(null)
-      console.log('Cargando horarios para médico:', medicoId)
-      const data = await api.getDisponibilidadMedico(medicoId, new Date().toISOString().split('T')[0])
-      console.log('Horarios obtenidos:', data)
-      setHorariosDisponibles(data)
+      const fechaInicio = new Date().toISOString().split('T')[0]
+      const fechaFin = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      const data = await api.getDisponibilidadMedico(medicoId, fechaInicio, fechaFin)
+      
+      // Normalizar datos: asegurar que fecha sea YYYY-MM-DD string
+      const horariosNormalizados = data.map(slot => ({
+        ...slot,
+        fecha: typeof slot.fecha === 'string' ? slot.fecha.split('T')[0] : new Date(slot.fecha).toISOString().split('T')[0]
+      }))
+      
+      setHorariosDisponibles(horariosNormalizados)
       const medicoSeleccionado = medicos.find(m => m.id === medicoId)
-      console.log('Médico seleccionado:', medicoSeleccionado)
       setSelectedDoctor(medicoSeleccionado)
     } catch (err) {
       console.error('Error al cargar horarios:', err)
@@ -72,21 +75,34 @@ export function BuscarMedicosContent() {
     }
   }
 
-  const reservarTurno = async (medicoId, fecha, hora) => {
+  const reservarTurno = async (medicoId, fecha, horaInicio) => {
     try {
       setLoading(true)
-      const nuevosHorarios = horariosDisponibles.map(slot => {
-        if (slot.fecha === fecha && slot.hora === hora) {
-          return { ...slot, disponible: false };
-        }
-        return slot;
-      });
+      setError(null)
       
-      setHorariosDisponibles(nuevosHorarios);
-      setSuccessMessage("Turno reservado exitosamente");
+      const idPaciente = localStorage.getItem('id_paciente')
+      if (!idPaciente) {
+        throw new Error('No se encontró el ID del paciente')
+      }
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const fechaTurnoFormatted = `${fecha} ${horaInicio}`
       
+      // Llamar al backend para reservar
+      const response = await api.reservarTurno(
+        idPaciente,
+        medicoId,
+        fechaTurnoFormatted,
+        'Consulta general'
+      )
+      
+      if (response.success) {
+        setSuccessMessage("Turno reservado exitosamente")
+        // Remover el turno reservado de la lista
+        setHorariosDisponibles(horariosDisponibles.filter(slot => 
+          !(slot.fecha === fecha && slot.hora_inicio === horaInicio)
+        ))
+        setTimeout(() => setSelectedDoctor(null), 2000)
+      }
     } catch (err) {
       setError("Error al reservar el turno")
       console.error('Error en reservarTurno:', err)
@@ -176,67 +192,120 @@ export function BuscarMedicosContent() {
         ))}
       </div>
 
-      {selectedDoctor && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto border border-black">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Horarios Disponibles - {selectedDoctor.nombre}
-              </h2>
-              <button
-                onClick={() => setSelectedDoctor(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {Object.entries(
-                horariosDisponibles.reduce((acc, slot) => {
-                  const fecha = new Date(slot.fecha).toLocaleDateString()
-                  if (!acc[fecha]) acc[fecha] = []
-                  acc[fecha].push(slot)
-                  return acc
-                }, {})
-              ).map(([fecha, slots]) => (
-                <div key={fecha} className="border-b border-gray-200 pb-4">
-                  <h3 className="font-medium text-gray-900 mb-2">
-                    {new Date(slots[0].fecha).toLocaleDateString('es-ES', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {slots.map((slot, index) => (
-                      <button
-                        key={index}
-                        disabled={!slot.disponible || loading}
-                        onClick={() => reservarTurno(selectedDoctor.id, slot.fecha, slot.hora)}
-                        className={`p-2 rounded-lg text-center ${
-                          loading
-                            ? "bg-gray-100 text-gray-400 cursor-wait"
-                            : slot.disponible
-                            ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
-                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        }`}
-                      >
-                        {slot.hora}
-                      </button>
-                    ))}
+      {selectedDoctor && horariosDisponibles.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">Reservar Turno</h2>
+                  <div className="space-y-1">
+                    <p className="text-xl font-semibold">{selectedDoctor.nombre}</p>
+                    <p className="text-blue-100">{selectedDoctor.especialidad}</p>
                   </div>
                 </div>
-              ))}
+                <button
+                  onClick={() => setSelectedDoctor(null)}
+                  className="text-white hover:bg-blue-800 rounded-full p-2 transition-colors"
+                >
+                  <XCircle className="w-8 h-8" />
+                </button>
+              </div>
             </div>
 
-            <div className="mt-6 flex justify-end">
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                  <p className="font-semibold mb-1">Error</p>
+                  <p className="text-sm">{error}</p>
+                </div>
+              )}
+
+              <div className="mb-4">
+                <p className="text-gray-600 mb-4">
+                  Selecciona una fecha y hora disponible para tu consulta:
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                {Object.entries(
+                  horariosDisponibles.reduce((acc, slot) => {
+                    if (!acc[slot.fecha]) acc[slot.fecha] = []
+                    acc[slot.fecha].push(slot)
+                    return acc
+                  }, {})
+                ).map(([fecha, slots]) => (
+                  <div key={fecha} className="border-l-4 border-blue-600 bg-blue-50 rounded-lg p-5">
+                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-blue-600" />
+                      {new Date(fecha + 'T00:00:00').toLocaleDateString('es-ES', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </h3>
+                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                      {slots.map((slot, index) => (
+                        <button
+                          key={index}
+                          disabled={loading}
+                          onClick={() => {
+                            if (confirm(`¿Deseas reservar el turno para ${slot.hora_inicio.substring(0, 5)}?`)) {
+                              reservarTurno(selectedDoctor.id, slot.fecha, slot.hora_inicio)
+                            }
+                          }}
+                          className={`py-2 px-3 rounded-lg font-semibold text-sm transition-all ${
+                            loading
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 cursor-pointer shadow-md hover:shadow-lg"
+                          }`}
+                        >
+                          {loading && (
+                            <div className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></div>
+                          )}
+                          {slot.hora_inicio.substring(0, 5)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 bg-gray-50 p-6 flex justify-end gap-3">
               <button
                 onClick={() => setSelectedDoctor(null)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
-                Cerrar
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedDoctor && horariosDisponibles.length === 0 && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+            <div className="text-center">
+              <div className="mb-4 flex justify-center">
+                <Calendar className="w-16 h-16 text-gray-400" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Sin Disponibilidad
+              </h2>
+              <p className="text-gray-600 mb-6">
+                El Dr/Dra. {selectedDoctor.nombre} no tiene horarios disponibles en los próximos 7 días.
+              </p>
+              <button
+                onClick={() => setSelectedDoctor(null)}
+                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+              >
+                Entendido
               </button>
             </div>
           </div>

@@ -25,7 +25,9 @@ export function ConsultasContent() {
           throw new Error('No se recibieron datos del servidor');
         }
         
-        setConsultas(response.data);
+        // Extraer datos correctamente
+        const consultasData = response.data.data || response.data;
+        setConsultas(Array.isArray(consultasData) ? consultasData : []);
         setError(null);
       } catch (err) {
         console.error('Error al cargar consultas:', err);

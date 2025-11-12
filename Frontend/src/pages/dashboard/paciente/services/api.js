@@ -6,9 +6,15 @@ export const api = {
   getEspecialidades: async () => {
     try {
       console.log('Obteniendo especialidades...');
-      const response = await apiClient.get('/especialidades');
+      const response = await apiClient.get('/pacientes/especialidades');
       console.log('Respuesta especialidades:', response.data);
-      return response.data;
+      const data = response.data.data || response.data;
+      // Normalizar nombres de campos
+      return Array.isArray(data) ? data.map(e => ({
+        id: e.id_especialidad,
+        nombre: e.nombre,
+        es_quirurgica: e.es_quirurgica
+      })) : [];
     } catch (error) {
       console.error('Error al obtener especialidades:', error);
       if (error.response?.status === 401) {
@@ -21,22 +27,35 @@ export const api = {
 
   getMedicos: async (especialidad = '', nombre = '') => {
     try {
-      const response = await apiClient.get('/medicos', {
-        params: { especialidad, nombre }
+      const response = await apiClient.get('/pacientes/medicos', {
+        params: { id_especialidad: especialidad, busqueda: nombre }
       })
-      return response.data
+      const data = response.data.data || response.data;
+      // Normalizar nombres de campos
+      return Array.isArray(data) ? data.map(m => ({
+        id: m.id_medico,
+        nombre: m.nombres || `${m.nombre} ${m.apellido}`,
+        nombres: m.nombre,
+        apellidos: m.apellido,
+        especialidad: m.especialidad,
+        email: m.email,
+        telefono: m.telefono,
+        matricula: m.matricula,
+        total_consultas: m.total_consultas,
+        calificacion_promedio: m.calificacion_promedio
+      })) : [];
     } catch (error) {
       console.error('Error al obtener médicos:', error)
       throw error
     }
   },
 
-  getDisponibilidadMedico: async (medicoId, fecha) => {
+  getDisponibilidadMedico: async (medicoId, fechaInicio, fechaFin) => {
     try {
-      const response = await apiClient.get(`/disponibilidad_medicos/${medicoId}`, {
-        params: { fecha }
+      const response = await apiClient.get(`/pacientes/disponibilidad/${medicoId}`, {
+        params: { fecha_inicio: fechaInicio, fecha_fin: fechaFin }
       })
-      return response.data
+      return response.data.data || response.data
     } catch (error) {
       console.error('Error al obtener disponibilidad:', error)
       throw error
@@ -44,14 +63,12 @@ export const api = {
   },
 
   // RF-06: Reserva de turnos
-  reservarTurno: async (medicoId, fecha, hora, pacienteId) => {
+  reservarTurno: async (pacienteId, medicoId, fechaTurno, motivo) => {
     try {
-      const response = await apiClient.post('/turnos', {
-        medico_id: medicoId,
-        fecha,
-        hora,
-        paciente_id: pacienteId,
-        estado: 'Reservado'
+      const response = await apiClient.post(`/pacientes/${pacienteId}/reservar-turno`, {
+        id_medico: medicoId,
+        fecha_turno: fechaTurno,
+        motivo
       })
       return response.data
     } catch (error) {
@@ -63,10 +80,8 @@ export const api = {
   // RF-07: Gestión de turnos del paciente
   getTurnosPaciente: async (pacienteId) => {
     try {
-      const response = await apiClient.get(`/turnos/paciente/${pacienteId}`, {
-        params: { estado: ['Reservado', 'En Espera'] }
-      })
-      return response.data
+      const response = await apiClient.get(`/pacientes/dashboard/${pacienteId}`)
+      return response.data.data?.proximosTurnos || []
     } catch (error) {
       console.error('Error al obtener turnos:', error)
       throw error
@@ -75,9 +90,7 @@ export const api = {
 
   cancelarTurno: async (turnoId) => {
     try {
-      const response = await apiClient.put(`/turnos/${turnoId}`, {
-        estado: 'Cancelado'
-      })
+      const response = await apiClient.put(`/pacientes/turnos/${turnoId}/cancelar`)
       return response.data
     } catch (error) {
       console.error('Error al cancelar turno:', error)
@@ -88,10 +101,8 @@ export const api = {
   // RF-08: Recetas electrónicas
   getRecetasActivas: async (pacienteId) => {
     try {
-      const response = await apiClient.get(`/recetas/paciente/${pacienteId}`, {
-        params: { estado: 'Activa' }
-      })
-      return response.data
+      const response = await apiClient.get(`/pacientes/recetas/${pacienteId}`)
+      return response.data.data || response.data
     } catch (error) {
       console.error('Error al obtener recetas:', error)
       throw error
@@ -100,7 +111,7 @@ export const api = {
 
   getDetalleReceta: async (recetaId) => {
     try {
-      const response = await apiClient.get(`/recetas/${recetaId}/detalle`)
+      const response = await apiClient.get(`/pacientes/recetas/${recetaId}`)
       return response.data
     } catch (error) {
       console.error('Error al obtener detalle de receta:', error)
@@ -111,8 +122,8 @@ export const api = {
   // RF-09: Estudios médicos
   getEstudiosMedicos: async (pacienteId) => {
     try {
-      const response = await apiClient.get(`/estudiosmedicos/paciente/${pacienteId}`)
-      return response.data
+      const response = await apiClient.get(`/pacientes/estudios/${pacienteId}`)
+      return response.data.data || response.data
     } catch (error) {
       console.error('Error al obtener estudios médicos:', error)
       throw error
@@ -121,7 +132,7 @@ export const api = {
 
   getInformeEstudio: async (estudioId) => {
     try {
-      const response = await apiClient.get(`/estudiosmedicos/${estudioId}/informe`, {
+      const response = await apiClient.get(`/pacientes/estudios/${estudioId}/informe`, {
         responseType: 'blob'
       })
       return response.data
@@ -134,8 +145,8 @@ export const api = {
   // RF-10 y RF-11: Facturación y pagos
   getResumenFacturacion: async (pacienteId) => {
     try {
-      const response = await apiClient.get(`/facturacion/paciente/${pacienteId}/resumen`)
-      return response.data
+      const response = await apiClient.get(`/pacientes/facturas/${pacienteId}`)
+      return response.data.data || response.data
     } catch (error) {
       console.error('Error al obtener resumen de facturación:', error)
       throw error
@@ -144,7 +155,7 @@ export const api = {
 
   getDetalleFacturacion: async (facturaId) => {
     try {
-      const response = await apiClient.get(`/facturacion/${facturaId}/detalle`)
+      const response = await apiClient.get(`/pacientes/facturas/${facturaId}`)
       return response.data
     } catch (error) {
       console.error('Error al obtener detalle de facturación:', error)
@@ -154,8 +165,8 @@ export const api = {
 
   getHistorialPagos: async (pacienteId) => {
     try {
-      const response = await apiClient.get(`/pagos/paciente/${pacienteId}`)
-      return response.data
+      const response = await apiClient.get(`/pacientes/facturas/${pacienteId}`)
+      return response.data.data || response.data
     } catch (error) {
       console.error('Error al obtener historial de pagos:', error)
       throw error
@@ -165,8 +176,8 @@ export const api = {
   // RF-12: Gestión de datos personales
   getDatosPersonales: async (pacienteId) => {
     try {
-      const response = await apiClient.get(`/personas/${pacienteId}`)
-      return response.data
+      const response = await apiClient.get(`/pacientes/datos/${pacienteId}`)
+      return response.data.data || response.data
     } catch (error) {
       console.error('Error al obtener datos personales:', error)
       throw error
@@ -175,11 +186,34 @@ export const api = {
 
   actualizarDatosPersonales: async (pacienteId, datos) => {
     try {
-      const response = await apiClient.put(`/personas/${pacienteId}`, datos)
+      const response = await apiClient.put(`/pacientes/datos/${pacienteId}`, datos)
       return response.data
     } catch (error) {
       console.error('Error al actualizar datos personales:', error)
       throw error
     }
+  },
+
+  // RF-04: Consultas del paciente
+  getConsultas: async (pacienteId) => {
+    try {
+      const response = await apiClient.get(`/pacientes/consultas/${pacienteId}`)
+      return response.data.data || response.data
+    } catch (error) {
+      console.error('Error al obtener consultas:', error)
+      throw error
+    }
+  },
+
+  // RF-03: Historia clínica
+  getHistoriaClinica: async (pacienteId) => {
+    try {
+      const response = await apiClient.get(`/pacientes/${pacienteId}/historia-clinica`)
+      return response.data.data || response.data
+    } catch (error) {
+      console.error('Error al obtener historia clínica:', error)
+      throw error
+    }
   }
 }
+

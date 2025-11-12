@@ -23,8 +23,9 @@ export function FacturacionContent() {
           }
         });
         
-        const pendientes = response.data.filter(f => f.estado === 'Pendiente');
-        const historial = response.data.filter(f => f.estado === 'Pagada');
+        const facturasData = response.data.data || response.data;
+        const pendientes = Array.isArray(facturasData) ? facturasData.filter(f => f.estado === 'Pendiente') : [];
+        const historial = Array.isArray(facturasData) ? facturasData.filter(f => f.estado === 'Pagada') : [];
         
         setFacturas({ pendientes, historial });
       } catch (err) {

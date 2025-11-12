@@ -27,7 +27,9 @@ export function InicioContent() {
         } : {}
       });
 
-      if (response.data) {
+      if (response.data.data) {
+        setDashboardData(response.data.data);
+      } else if (response.data) {
         setDashboardData(response.data);
       } else {
         throw new Error('No se recibieron datos del servidor');

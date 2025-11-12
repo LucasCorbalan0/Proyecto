@@ -49,7 +49,6 @@ export function RecetasContent() {
     doc.text(`Dosis: ${receta.dosis}`, 20, 55);
     doc.text(`Fecha Emisión: ${new Date(receta.fecha_emision).toLocaleDateString()}`, 20, 65);
     doc.text(`Vencimiento: ${new Date(receta.fecha_vencimiento).toLocaleDateString()}`, 20, 75);
-    doc.text(`Renovaciones disponibles: ${receta.renovaciones_disponibles || 0}`, 20, 85);
     doc.save(`Receta_${receta.medicamento.replace(/\s/g, '_')}.pdf`);
     toast.success('PDF de la receta descargado');
   };
@@ -96,13 +95,6 @@ export function RecetasContent() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-2">
-                  <RefreshCw className="w-4 h-4 text-gray-400 mt-1" />
-                  <div>
-                    <p className="text-sm text-gray-500">Renovaciones disponibles</p>
-                    <p className="text-gray-900">{receta.renovaciones_disponibles || 0}</p>
-                  </div>
-                </div>
               </div>
 
               <div className="flex gap-2 pt-4 border-t border-gray-200">
@@ -113,11 +105,6 @@ export function RecetasContent() {
                   <Download className="w-4 h-4" />
                   Descargar PDF
                 </button>
-                {receta.renovaciones_disponibles > 0 && (
-                  <button className="flex-1 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-medium transition-colors">
-                    Renovar
-                  </button>
-                )}
               </div>
             </div>
           ))}
