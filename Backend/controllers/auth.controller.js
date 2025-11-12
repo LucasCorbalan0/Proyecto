@@ -3,9 +3,8 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { execute } = require('../config/database');
 
-/* ---------------------------------------------------
-   🔐 INICIO DE SESIÓN (LOGIN)
---------------------------------------------------- */
+
+
 const iniciarSesion = asyncHandler(async (req, res) => {
     const { nombre_usuario, password } = req.body;
 
@@ -18,7 +17,7 @@ const iniciarSesion = asyncHandler(async (req, res) => {
     // Buscamos el usuario en la base de datos
     const consulta = `
         SELECT u.id_usuario, u.nombre_usuario, u.password, u.id_rol_sistema,
-               p.nombre, p.apellido, p.dni, p.email, pac.id_paciente
+               p.nombre, p.apellido, p.dni, p.email, p.telefono, p.direccion, pac.id_paciente
         FROM usuarios u
         JOIN personas p ON u.id_persona = p.id_persona
         LEFT JOIN pacientes pac ON pac.id_persona = p.id_persona
@@ -37,7 +36,7 @@ const iniciarSesion = asyncHandler(async (req, res) => {
 
     if (!coincide) {
         res.status(401);
-        throw new Error('Credenciales inválidas');
+        throw new Error('contraseña y/o usuario incorrectos');
     }
 
     // Generamos el token JWT
@@ -61,14 +60,15 @@ const iniciarSesion = asyncHandler(async (req, res) => {
             nombre: usuario.nombre,
             apellido: usuario.apellido,
             email: usuario.email,
+            telefono: usuario.telefono,
+            direccion: usuario.direccion,
+            dni: usuario.dni,
             id_paciente: usuario.id_paciente
         }
     });
 });
 
-/* ---------------------------------------------------
-   🧾 REGISTRO DE NUEVOS USUARIOS
---------------------------------------------------- */
+
 const registrarUsuario = asyncHandler(async (req, res) => {
     console.log('Datos recibidos:', req.body);
     
@@ -129,8 +129,9 @@ const registrarUsuario = asyncHandler(async (req, res) => {
             fecha_nacimiento,
             genero,
             email,
-            telefono
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            telefono,
+            direccion
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `,
         [
             nombre,
@@ -139,7 +140,8 @@ const registrarUsuario = asyncHandler(async (req, res) => {
             fecha_nacimiento,
             genero,
             email,
-            telefono || null
+            telefono || null,
+            req.body.direccion || null
         ]
     );
 
@@ -182,9 +184,7 @@ const registrarUsuario = asyncHandler(async (req, res) => {
     }
 });
 
-/* ---------------------------------------------------
-   👤 PERFIL DEL USUARIO LOGUEADO
---------------------------------------------------- */
+
 const obtenerPerfil = asyncHandler(async (req, res) => {
     const resultado = await execute(
         `
@@ -204,9 +204,7 @@ const obtenerPerfil = asyncHandler(async (req, res) => {
     res.json(resultado[0]);
 });
 
-/* ---------------------------------------------------
-   Exportamos las funciones para usarlas en las rutas
---------------------------------------------------- */
+
 module.exports = {
     iniciarSesion,
     registrarUsuario,

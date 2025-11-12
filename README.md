@@ -1,66 +1,178 @@
 # Sistema de Gestión Hospitalaria
 
-Este proyecto está organizado en dos partes principales: Frontend y Backend.
+Plataforma completa de gestión hospitalaria con dashboard de pacientes, búsqueda de médicos, reserva de turnos, gestión de consultas, recetas, estudios y facturación.
 
-## Estructura del Proyecto
+## 🚀 Stack Tecnológico
+
+**Frontend:**
+- React 18 con Vite
+- Tailwind CSS para estilos
+- Axios para HTTP requests
+- React Router para navegación
+
+**Backend:**
+- Node.js + Express
+- MySQL/MariaDB
+- JWT para autenticación
+- Express Async Handler
+
+## 📁 Estructura del Proyecto
 
 ```
 Proyecto/
-├── Frontend/                # Aplicación React + Vite
-│   ├── src/                # Código fuente del frontend
-│   │   ├── components/     # Componentes React
-│   │   ├── pages/         # Páginas de la aplicación
-│   │   ├── assets/        # Recursos estáticos
+├── Frontend/
+│   ├── src/
+│   │   ├── components/          # Componentes reutilizables
+│   │   ├── pages/
+│   │   │   └── dashboard/
+│   │   │       ├── paciente/    # Dashboard del paciente
+│   │   │       │   ├── sections/    # Módulos (Inicio, Consultas, etc.)
+│   │   │       │   └── services/    # API service layer
+│   │   │       └── ...
+│   │   ├── context/             # React Context (autenticación)
+│   │   ├── hooks/               # Hooks personalizados
+│   │   └── services/            # Servicios globales
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   └── package.json
+│
+├── Backend/
+│   ├── config/
+│   │   └── database.js          # Conexión MySQL
+│   ├── controllers/
+│   │   ├── pacienteController.js
+│   │   ├── medicoController.js
+│   │   ├── auth.controller.js
 │   │   └── ...
-│   ├── public/            # Archivos públicos
-│   └── ...                # Archivos de configuración (vite, eslint, etc.)
+│   ├── middleware/
+│   │   └── auth.middleware.js
+│   ├── routes/
+│   │   ├── pacienteRoutes.js
+│   │   ├── medicoRoutes.js
+│   │   └── ...
+│   ├── index.js                 # Punto de entrada
+│   ├── .env                     # Variables de entorno
+│   └── package.json
 │
-├── Backend/               # Servidor Node.js + Express
-│   ├── config/           # Configuración del servidor
-│   ├── controllers/      # Controladores
-│   ├── middleware/       # Middleware personalizado
-│   ├── routes/          # Rutas de la API
-│   └── server.js        # Punto de entrada del servidor
-│
-└── README.md            # Este archivo
-
+├── Dump20251023.sql             # Dump de BD
+└── README.md
 ```
 
-## Configuración del Proyecto
+## ⚙️ Configuración
 
-### Frontend
-1. Navegar al directorio Frontend:
-   ```bash
-   cd Frontend
-   ```
-2. Instalar dependencias:
-   ```bash
-   npm install
-   ```
-3. Iniciar servidor de desarrollo:
-   ```bash
-   npm run dev
-   ```
+### Prerequisites
+- Node.js v16+
+- MySQL 8.0+
+- npm o yarn
 
-### Backend
+### Backend Setup
+
 1. Navegar al directorio Backend:
-   ```bash
-   cd Backend
-   ```
-2. Instalar dependencias:
-   ```bash
-   npm install
-   ```
-3. Configurar variables de entorno:
-   - Crear archivo `.env` basado en `.env.example`
-   - Configurar las variables necesarias
-4. Iniciar el servidor:
-   ```bash
-   npm start
-   ```
+```bash
+cd Backend
+npm install
+```
 
-## Base de Datos
-- El sistema utiliza MySQL
-- La base de datos por defecto es 'hospitaldb'
-- Asegúrate de tener MySQL instalado y corriendo
-- Configura las credenciales en el archivo `.env` del Backend
+2. Crear archivo `.env`:
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=123456
+DB_NAME=hospitaldb
+PORT=3001
+JWT_SECRET=tu_secreto_aqui
+```
+
+3. Importar base de datos:
+```bash
+mysql -h localhost -u root -p123456 hospitaldb < ../Dump20251023.sql
+```
+
+4. Iniciar servidor:
+```bash
+npm run dev
+```
+
+### Frontend Setup
+
+1. Navegar al directorio Frontend:
+```bash
+cd Frontend
+npm install
+```
+
+2. Iniciar servidor de desarrollo:
+```bash
+npm run dev
+```
+
+El frontend estará disponible en `http://localhost:5173`
+
+## 🔌 API Endpoints Principales
+
+### Autenticación
+- `POST /api/auth/login` - Login
+- `POST /api/auth/register` - Registro
+
+### Paciente Dashboard
+- `GET /api/pacientes/dashboard/:id` - Resumen dashboard
+- `GET /api/pacientes/datos/:id` - Datos personales
+- `GET /api/pacientes/:id/historia-clinica` - Historia clínica
+- `GET /api/pacientes/consultas/:id` - Consultas
+- `GET /api/pacientes/recetas/:id` - Recetas
+- `GET /api/pacientes/estudios/:id` - Estudios
+- `GET /api/pacientes/facturas/:id` - Facturas
+
+### Búsqueda de Médicos y Turnos
+- `GET /api/pacientes/especialidades` - Listar especialidades
+- `GET /api/pacientes/medicos` - Buscar médicos
+- `GET /api/pacientes/disponibilidad/:id_medico` - Disponibilidad
+- `POST /api/pacientes/:id_paciente/reservar-turno` - Reservar turno
+
+## 📊 Base de Datos
+
+La aplicación utiliza MySQL con las siguientes tablas principales:
+- `usuarios` - Usuarios del sistema
+- `pacientes` - Datos de pacientes
+- `medicos` - Información de médicos
+- `turnos` - Turnos reservados
+- `consultas` - Registro de consultas
+- `recetas` - Recetas médicas
+- `estudios_medicos` - Estudios realizados
+- `facturas` - Facturación
+- `disponibilidad_medicos` - Horarios disponibles
+
+## 🔐 Autenticación
+
+El sistema utiliza JWT (JSON Web Tokens) para autenticación. Después del login, el token se almacena en localStorage y se envía con cada request.
+
+## 📝 Características Principales
+
+✅ Dashboard integral del paciente
+✅ Búsqueda y filtro de médicos por especialidad
+✅ Reserva de turnos online
+✅ Visualización de consultas y recetas
+✅ Gestión de estudios médicos
+✅ Sistema de facturación
+✅ Historia clínica del paciente
+✅ Autenticación JWT segura
+
+## 🛠️ Desarrollo
+
+Para desarrollo, ambos servidores deben estar corriendo:
+
+Terminal 1 (Backend):
+```bash
+cd Backend
+npm run dev
+```
+
+Terminal 2 (Frontend):
+```bash
+cd Frontend
+npm run dev
+```
+
+## 📄 Licencia
+
+Proyecto privado - Hospital

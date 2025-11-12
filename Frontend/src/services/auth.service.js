@@ -22,7 +22,10 @@ export const login = async (nombre_usuario, password) => {
     }
     localStorage.setItem('nombre', response.data.usuario.nombre);
     localStorage.setItem('apellido', response.data.usuario.apellido);
-    localStorage.setItem('email', response.data.usuario.email);
+    localStorage.setItem('email', response.data.usuario.email || '');
+    localStorage.setItem('telefono', response.data.usuario.telefono || '');
+    localStorage.setItem('direccion', response.data.usuario.direccion || '');
+    localStorage.setItem('dni', response.data.usuario.dni || '');
     localStorage.setItem('rol', response.data.usuario.rol);
   }
   

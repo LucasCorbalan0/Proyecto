@@ -1,6 +1,8 @@
+// Configuración: usamos valores de configuración local en los archivos correspondientes.
+// Ya no dependemos de un archivo .env para la conexión a la base de datos.
+
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const { pool } = require('./config/database');
 
 // Rutas del proyecto
@@ -8,8 +10,8 @@ const authRoutes = require('./routes/auth.routes');
 const pacienteRoutes = require('./routes/pacienteRoutes');
 const adminRoutes = require('./routes/admin.routes');
 const infraestructuraRoutes = require('./routes/infraestructuraRoutes');
-
-dotenv.config();
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const medicoRoutes = require('./routes/medicoRoutes');
 
 if (!process.env.JWT_SECRET) {
   console.error('⚠️ JWT_SECRET no está definido en .env');
@@ -34,21 +36,21 @@ app.use('/api/auth', authRoutes);
 app.use('/api/pacientes', pacienteRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/infraestructura', infraestructuraRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/medicos', medicoRoutes);
 
-// Ruta de prueba
-app.get('/api', (req, res) => {
-  res.json({ message: 'API del sistema hospital funcionando correctamente' });
-});
+
 
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
+    success: false,
     message: err.message || 'Error interno del servidor'
   });
 });
 
-// Iniciar servidor
+
 app.listen(PORT, () => {
   console.log(`🚀 Servidor en marcha: http://localhost:${PORT}`);
 });

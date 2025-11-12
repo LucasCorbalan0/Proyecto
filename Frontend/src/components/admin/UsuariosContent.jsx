@@ -9,7 +9,7 @@ import {
     updateUser, 
     toggleActiveUser, 
     deleteUser 
-} from '../../services/admin.service' // <--- Importación del nuevo servicio
+} from '../../services/admin.service' // <--- Importación del nu
 
 export default function UsuariosContent() {
   // Eliminamos initialUsers
@@ -18,14 +18,33 @@ export default function UsuariosContent() {
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(false)
   const [dataLoading, setDataLoading] = useState(true) // Estado para carga inicial
-  const [form, setForm] = useState({ nombre: "", apellido: "", dni: "", email: "", fechaNacimiento: "", telefono: "", username: "", rol: "Médico" })
+  const [form, setForm] = useState({ nombre: "", apellido: "", dni: "", email: "", fechaNacimiento: "", telefono: "", username: "", rol: "Médico", genero: "", direccion: "" })
 
   // Función para cargar los usuarios
   const loadUsers = useCallback(async () => {
     setDataLoading(true)
     try {
-      const response = await getUsers(); 
-      setUsers(response.data);
+      const response = await getUsers();
+      // El backend puede devolver { success, total, data } o directamente un array.
+      const raw = response.data?.data ?? response.data ?? response;
+      // Normalizar cada usuario a la forma que espera este componente
+      const normalized = (Array.isArray(raw) ? raw : []).map(u => ({
+        id: u.id_usuario ?? u.id ?? u.id_usuario,
+        nombre_persona: u.nombre ?? u.nombre_persona ?? '',
+        apellido_persona: u.apellido ?? u.apellido_persona ?? '',
+        nombre: (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}` : (u.nombre ?? u.nombre_persona ?? ''),
+        dni: u.dni ?? u.documento ?? '',
+        email: u.email ?? '',
+        fechaNacimiento: u.fecha_nacimiento ?? u.fechaNacimiento ?? null,
+        telefono: u.telefono ?? '',
+        username: u.nombre_usuario ?? u.username ?? '',
+        genero: u.genero ?? u.sexo ?? '',
+        direccion: u.direccion ?? '',
+        rol: u.rol ?? u.nombre_rol ?? u.rol_sistema ?? 'Usuario',
+        activo: (u.activo === 1 || u.activo === true)
+      }));
+
+      setUsers(normalized);
     } catch (error) {
       console.error("Error al cargar usuarios:", error);
       toast.error('Error al cargar la lista de usuarios. Verifica la conexión al backend y la autenticación.')
@@ -53,12 +72,14 @@ export default function UsuariosContent() {
         fechaNacimiento: editing.fechaNacimiento || "", // YYYY-MM-DD
         telefono: editing.telefono || "",
         username: editing.username || "",
+        genero: editing.genero || "",
+        direccion: editing.direccion || "",
         rol: editing.rol 
       })
     }
   }, [editing])
 
-  const openCreate = () => { setEditing(null); setForm({ nombre: "", apellido: "", dni: "", email: "", fechaNacimiento: "", telefono: "", username: "", rol: "Médico" }); setModalOpen(true) }
+  const openCreate = () => { setEditing(null); setForm({ nombre: "", apellido: "", dni: "", email: "", fechaNacimiento: "", telefono: "", username: "", rol: "Médico", genero: "", direccion: "" }); setModalOpen(true) }
   
   // Modificamos openEdit para que tome los campos individuales que devuelve la API
   const openEdit = (u) => { 
@@ -72,6 +93,12 @@ export default function UsuariosContent() {
         toast.error("Completar todos los campos requeridos"); 
         return 
     }
+    
+    // Si es creación, la contraseña será el DNI
+    if (!editing && !form.password) {
+        form.password = form.dni;
+    }
+    
     setLoading(true)
     
     const dataToSend = {
@@ -82,7 +109,11 @@ export default function UsuariosContent() {
       fechaNacimiento: form.fechaNacimiento,
       telefono: form.telefono,
       username: form.username,
-      rol: form.rol
+      rol: form.rol,
+      genero: form.genero,
+      direccion: form.direccion,
+      // Para creación: enviar DNI como contraseña
+      password: form.password || form.dni
     }
 
     try {
@@ -96,7 +127,7 @@ export default function UsuariosContent() {
         
         setModalOpen(false)
         setEditing(null)
-        setForm({ nombre: "", apellido: "", dni: "", email: "", fechaNacimiento: "", telefono: "", username: "", rol: "Médico" })
+        setForm({ nombre: "", apellido: "", dni: "", email: "", fechaNacimiento: "", telefono: "", username: "", rol: "Médico", genero: "", direccion: "" })
         loadUsers() // Recargar para mostrar los cambios
         
     } catch (error) {
@@ -113,11 +144,18 @@ export default function UsuariosContent() {
   const toggleActive = async (id) => {
     try {
         const response = await toggleActiveUser(id);
-        const newStatus = response.data.newStatus;
-        
-        // Actualizamos la interfaz localmente
-        setUsers(users.map(u => u.id === id ? { ...u, activo: newStatus } : u))
-        toast.success(`Usuario ${newStatus ? 'activado' : 'desactivado'} correctamente.`)
+        const resData = response.data ?? {};
+        // El backend puede devolver 'nuevoEstado' (boolean) o 'newStatus' o incluso la propia respuesta booleana
+        const newStatus = (typeof resData === 'boolean') ? resData : (resData.nuevoEstado ?? resData.newStatus ?? null);
+
+        if (typeof newStatus === 'boolean') {
+          setUsers(users.map(u => u.id === id ? { ...u, activo: newStatus } : u))
+          toast.success(`Usuario ${newStatus ? 'activado' : 'desactivado'} correctamente.`)
+        } else {
+          // Fallback: recargar la lista completa
+          loadUsers();
+          toast.success('Estado del usuario actualizado.');
+        }
         
     } catch (error) {
         const errorMessage = error.response?.data?.message || "Error al cambiar el estado.";
@@ -236,6 +274,19 @@ export default function UsuariosContent() {
                 <option>Administrativo</option>
                 <option>Paciente</option>
               </select>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">Sexo / Género</label>
+              <select value={form.genero} onChange={e => setForm({ ...form, genero: e.target.value })} className="w-full rounded-lg border p-2">
+                <option value="">-- Seleccionar --</option>
+                <option value="M">Masculino</option>
+                <option value="F">Femenino</option>
+                <option value="O">Otro</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="text-sm text-gray-500">Dirección</label>
+              <input value={form.direccion} onChange={e => setForm({ ...form, direccion: e.target.value })} className="w-full rounded-lg border p-2" placeholder="Calle, número, ciudad..." />
             </div>
             <div className="col-span-2">
               <p className="text-sm text-gray-500">La contraseña será el DNI.</p>

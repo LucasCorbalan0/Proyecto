@@ -1,0 +1,174 @@
+Tecnicatura Universitaria en Programación
+2025
+UTN - FRT
+Metodología de Sistemas II
+1° Entrega de Avance - Trabajo Final Integrador (TFI)
+Sistema de Gestión de Centro Médico
+Alumnos:
+[Nombre Completo de Compañero 1] - Legajo [Número]
+[Tu Nombre Completo] - Legajo [Número]
+[Añadir más compañeros si es necesario]
+1. Resumen del proyecto
+El presente proyecto consiste en la implementación de una Landing Page y un Sistema de Gestión Web, desarrollado para un centro médico privado.
+La iniciativa surge a partir de la necesidad de modernizar y optimizar la gestión de pacientes y los procesos clínicos internos. Hasta el momento, la mayoría de las operaciones (gestión de turnos, acceso a historias clínicas, coordinación de personal, inventario y facturación) se manejan mediante métodos manuales, lo cual genera demoras, riesgos de error e ineficiencias operativas.
+La solución propuesta es un sistema de gestión web que centraliza y digitaliza las operaciones clave a través de módulos específicos para seis roles (SuperAdmin, AdminHospital, Recepcionista, Médico, Enfermero y Paciente). Este sistema se acompaña de una Landing Page profesional, que sirve como portal de acceso principal al sistema para todos los roles y permite la autogestión de los pacientes.
+El proyecto se estructura en etapas: Análisis de Requerimientos, Diseño (incluyendo la definición de una base de datos normalizada con generalización), Desarrollo (Frontend con Vite/JS y Backend con Node.js/Express sobre MySQL) e Implementación.
+Se espera que el sistema mejore la eficiencia operativa mediante la automatización de la facturación y el control de stock en tiempo real, optimice la gestión de turnos basada en la disponibilidad real del médico, centralice la información clínica garantizando la seguridad y confidencialidad, y mejore la experiencia del paciente a través de la autogestión.
+2. Planteamiento del problema
+El centro médico, localizado en San Miguel de Tucumán, enfrenta desafíos en la gestión de sus operaciones clínicas y administrativas debido a la dependencia de métodos tradicionales (archivos físicos, hojas de cálculo, registros en papel).
+Principales deficiencias identificadas:
+Falta de centralización de la información clínica: Historias clínicas dispersas dificultan el acceso rápido y consolidado.
+Errores manuales frecuentes: En la carga de turnos, registros clínicos, control de stock y facturación, afectando la precisión y seguridad.
+Tiempo excesivo en tareas administrativas: Búsqueda de archivos, coordinación telefónica, transcripción de datos, cálculo manual de facturas.
+Gestión de turnos ineficiente: Dificultad para conocer la disponibilidad real de los médicos y riesgo de sobreagendamiento.
+Control de inventario manual: Riesgo de desabastecimiento de insumos críticos por falta de seguimiento en tiempo real del consumo.
+Facturación lenta y propensa a errores: El cálculo manual de los cargos por servicios prestados (consultas, internaciones) es ineficiente.
+Ausencia de un portal digital para el paciente: Limita la autogestión de turnos y el acceso a su información médica.
+La solución es la implementación de un sistema de gestión web integral con una Landing Page, que digitalice y optimice estos procesos mediante módulos específicos para cada rol y automatizaciones clave.
+3. Objetivos
+Objetivo General
+Implementar una Landing Page y un Sistema de Gestión Web integral para optimizar los procesos clínicos, administrativos, logísticos y financieros del centro médico, mejorando la eficiencia operativa, la seguridad del paciente y la experiencia de todos los usuarios.
+Objetivos Específicos
+Centralizar toda la información de pacientes, personal y recursos en una base de datos única y normalizada (modelo Persona).
+Implementar un sistema de gestión de turnos basado en la disponibilidad configurable por el médico y con pre-pago para consultas.
+Desarrollar dashboards específicos para cada uno de los seis roles definidos, asegurando la separación de deberes.
+Automatizar el control de stock mediante el descuento en tiempo real de insumos utilizados en la atención.
+Automatizar la generación de cargos de facturación basados en los servicios médicos prestados.
+Proveer un portal de autogestión para pacientes (registro, turnos, consulta de información).
+Garantizar la seguridad y auditoría del sistema mediante roles, permisos y registro de acciones.
+4. Alcance del proyecto
+El proyecto abarca el ciclo completo de desarrollo e implementación del sistema de gestión y la Landing Page.
+Elementos incluidos en el alcance:
+Análisis de requerimientos: Evaluación detallada de las necesidades de los seis roles.
+Diseño del sistema: Prototipos funcionales, diseño de la base de datos de 34 tablas (incluyendo personas, disponibilidad_medicos, prestaciones, stock_lotes, facturacion_detalle, tipos_turno).
+Desarrollo del Backend: API REST con Node.js/Express, conexión a MySQL, lógica de negocio, seguridad (JWT, bcrypt), automatizaciones.
+Desarrollo del Frontend: Landing Page y dashboards para cada rol con Vite/JS, interactuando con la API.
+Integración y pruebas: Puesta en marcha, pruebas funcionales y de integración.
+Capacitación: Plan de formación para el personal del centro médico.
+Documentación técnica: Manuales de usuario y documentación del sistema (este documento).
+5. Reglas de negocio
+Políticas y normas fundamentales que rigen la operatoria del centro médico.
+Generales de Identificación y Acceso
+Todo paciente, médico, enfermero o recepcionista debe ser identificado por un DNI único (tabla personas).
+El acceso a la información de una historia clínica está restringido al personal médico y de enfermería directamente involucrado en la atención del paciente.
+Gestión Ambulatoria (Turnos)
+Los turnos solo pueden ser programados dentro de los horarios definidos por el médico en su disponibilidad_medicos.
+Un turno de consulta solo pasará al estado En Espera (visible para el médico) una vez que el pago haya sido registrado por Recepcionista.
+Los turnos solo pueden ser programados con un máximo de 60 días de antelación.
+Quirófano y Cirugías
+No se puede programar una cirugía sin que paciente, médico principal (con es_quirurgica=true) y quirófano estén disponibles.
+Una cirugía solo puede ser registrada por un usuario con rol Medico cuya especialidad sea quirúrgica.
+Inventario y Farmacia
+El sistema debe generar una alerta cuando la cantidad total de un producto en stock_lotes caiga por debajo de un umbral mínimo configurable.
+Al administrar un medicamento/insumo a un paciente, se debe descontar la cantidad del lote con la fecha de vencimiento más próxima disponible (stock_lotes).
+Hospitalización y Alta
+Un paciente no puede ser dado de alta administrativamente si tiene cirugías o estudios pendientes críticos.
+Una cama no puede ser asignada hasta ser marcada como "Disponible" (limpieza realizada).
+Facturación y Finanzas
+Toda consulta ambulatoria debe ser pagada antes de la atención.
+La factura final de una internación o cirugía solo puede generarse tras el alta administrativa del paciente.
+Cada servicio médico prestado (consulta, día de internación, estudio, medicamento administrado) debe generar automáticamente un cargo en facturacion_detalle basado en la tabla prestaciones.
+6. Requerimientos funcionales
+Funcionalidades que el sistema debe cumplir para cada rol.
+Módulo General y de Autenticación
+RF-01: El sistema presentará una Landing Page pública informativa con un botón "Ingresar".
+RF-02: El sistema validará credenciales (usuario/contraseña) contra la tabla usuarios y generará un token JWT.
+RF-03: Tras login exitoso, el sistema redirigirá al dashboard correspondiente al id_rol_sistema del usuario.
+RF-04: La Landing Page incluirá un formulario para que nuevos pacientes puedan auto-registrarse (crear persona, usuario con rol Paciente, y paciente).
+Módulo del Paciente
+RF-05: El sistema permitirá al paciente buscar médicos por especialidad y ver sus horarios disponibles (consultando disponibilidad_medicos).
+RF-06: El sistema permitirá al paciente seleccionar un horario y reservar un turno (estado Reservado).
+RF-07: El sistema permitirá al paciente ver sus turnos futuros (Reservados y En Espera) y cancelarlos.
+RF-08: El sistema permitirá al paciente consultar sus recetas electrónicas activas (leyendo recetas y recetas_detalle).
+RF-09: El sistema permitirá al paciente ver la lista de sus estudios médicos y descargar los informes (leyendo estudiosmedicos).
+RF-10: El sistema mostrará al paciente un resumen de su facturación (facturacion) y el detalle de cargos (facturacion_detalle).
+RF-11: El sistema permitirá al paciente ver su historial de pagos (pagos).
+RF-12: El sistema permitirá al paciente editar sus datos personales básicos (en personas).
+Módulo del Recepcionista
+RF-13: El sistema permitirá al recepcionista crear turnos para pacientes (telefónicos o presenciales), buscando disponibilidad.
+RF-14: El sistema permitirá al recepcionista cancelar o reprogramar turnos existentes.
+RF-15: El sistema permitirá al recepcionista registrar nuevos pacientes o buscar existentes (CRUD en personas y pacientes).
+RF-16: El sistema permitirá al recepcionista buscar un turno Reservado, consultar el precio (desde prestaciones) y registrar el pago correspondiente.
+RF-17: Al registrar el pago, el sistema permitirá al recepcionista cambiar el estado del turno a En Espera.
+RF-18: El sistema permitirá al recepcionista ver las agendas completas de los médicos.
+Módulo del Médico
+RF-19: El sistema permitirá al médico definir y modificar sus horarios de atención (CRUD en disponibilidad_medicos).
+RF-20: El sistema mostrará al médico su agenda diaria/semanal de turnos En Espera.
+RF-21: El sistema permitirá al médico acceder a la historiasclinicas completa del paciente desde la agenda.
+RF-22: El sistema permitirá al médico registrar una consulta (diagnóstico, tratamiento).
+RF-23: El sistema permitirá al médico agregar evoluciones a la historia clínica.
+RF-24: El sistema permitirá al médico generar recetas electrónicas (buscando en productos).
+RF-25: El sistema permitirá al médico solicitar estudiosmedicos.
+RF-26: Si es_quirurgica es true para su especialidad, el sistema permitirá al médico programar cirugias, validando disponibilidad de quirofanos.
+RF-27: Al marcar un turno como Atendido, el sistema generará automáticamente el cargo en facturacion_detalle usando prestaciones.
+Módulo del Enfermero
+RF-28: El sistema mostrará al enfermero la lista de pacientes internados asignados (leyendo internaciones e internaciones_enfermeros).
+RF-29: El sistema mostrará las indicaciones médicas activas (medicamentos, sueros) para cada paciente (leyendo consultas, recetas).
+RF-30: El sistema permitirá al enfermero seleccionar un producto indicado y registrar su administración, descontando automáticamente la cantidad del stock_lotes correspondiente.
+RF-31: El sistema permitirá al enfermero registrar signos vitales en las evoluciones del paciente.
+RF-32: El sistema permitirá al enfermero añadir notas de texto libre en las evoluciones.
+Módulo del AdminHospital
+RF-33: El sistema permitirá al admin crear/modificar/desactivar usuarios del personal (Médicos, Enfermeros, Recepcionistas) y asignarles roles.
+RF-34: El sistema permitirá al admin gestionar los perfiles profesionales del personal (CRUD en medicos, enfermeros, recepcionistas).
+RF-35: El sistema permitirá al admin consultar/modificar datos de personas y pacientes.
+RF-36: El sistema permitirá al admin gestionar la infraestructura: habitaciones, camas, quirofanos.
+RF-37: El sistema permitirá al admin gestionar productos y proveedores.
+RF-38: El sistema permitirá al admin registrar compras e ingresar stock_lotes (con lote y vencimiento).
+RF-39: El sistema permitirá al admin gestionar la lista de prestaciones y sus precios.
+RF-40: El sistema permitirá al admin supervisar la facturacion (ver totales, facturas pendientes) y registrar pagos complejos (internaciones).
+RF-41: El sistema permitirá al admin generar reportes (ocupación, stock bajo, facturación pendiente).
+RF-42: El sistema permitirá al admin revisar la auditoria.
+RF-43: El sistema permitirá al admin gestionar especialidades (y marcar es_quirurgica).
+RF-44: El sistema permitirá al admin gestionar tipos_turno.
+Módulo del SuperAdmin
+RF-45: El sistema (en una sección separada) permitirá al SuperAdmin gestionar los rolessistema.
+RF-46: El sistema permitirá al SuperAdmin definir los permisos para cada rol.
+7. Historias de Usuario
+Rol: Paciente
+Como Paciente, quiero registrarme en el portal para poder gestionar mis turnos y ver mi información médica online.
+Como Paciente, quiero buscar médicos por especialidad y ver sus horarios libres para encontrar un turno que me convenga.
+Como Paciente, quiero reservar un turno online para asegurar mi cita sin tener que llamar.
+Como Paciente, quiero ver mis próximos turnos confirmados para recordar mis citas.
+Como Paciente, quiero cancelar un turno que no puedo asistir para liberar el horario y evitar ausencias.
+Como Paciente, quiero ver las recetas electrónicas que me dio el médico para saber qué medicamento comprar.
+Como Paciente, quiero descargar los resultados de mis estudios para tener una copia o llevarlos a otro profesional.
+Como Paciente, quiero ver mi estado de cuenta y facturas para controlar mis gastos médicos.
+Rol: Recepcionista
+Como Recepcionista, quiero agendar un turno para un paciente por teléfono para asistir a quienes no usan el portal.
+Como Recepcionista, quiero buscar un paciente por DNI para acceder rápidamente a su perfil y turnos.
+Como Recepcionista, quiero ver la agenda completa de un médico para encontrar el primer horario disponible.
+Como Recepcionista, quiero cobrar la consulta a un paciente que llega con un turno Reservado para confirmar su atención.
+Como Recepcionista, quiero marcar un turno como En Espera después del pago para que el médico sepa que el paciente está listo.
+Como Recepcionista, quiero actualizar el número de teléfono de un paciente para mantener sus datos de contacto al día.
+Rol: Médico
+Como Médico, quiero definir mis días y horarios de atención en el sistema para que los pacientes solo puedan reservar cuando estoy disponible.
+Como Médico, quiero ver mi lista de pacientes En Espera para hoy para saber quién es el próximo en mi sala de espera virtual.
+Como Médico, quiero abrir la historia clínica del paciente con un clic desde mi agenda para revisar sus antecedentes rápidamente.
+Como Médico, quiero registrar el diagnóstico y tratamiento de la consulta actual para mantener un historial completo.
+Como Médico, quiero generar una receta electrónica buscando el medicamento en un vademécum para evitar errores y hacerla legible.
+Como Médico, quiero solicitar un análisis de sangre para un paciente para confirmar mi diagnóstico.
+Como Médico Cirujano, quiero programar una cirugía verificando la disponibilidad del quirófano para asegurar los recursos necesarios.
+Como Médico, quiero marcar un turno como Atendido al finalizar para cerrar la consulta y que se genere el cargo correspondiente.
+Rol: Enfermero
+Como Enfermero, quiero ver la lista de mis pacientes internados al iniciar mi turno para saber a quién debo cuidar.
+Como Enfermero, quiero ver las indicaciones de medicación y sueros para un paciente para saber qué administrar y cuándo.
+Como Enfermero, quiero registrar que administré un medicamento, descontándolo del stock para llevar un control preciso y asegurar el inventario.
+Como Enfermero, quiero cargar los signos vitales del paciente cada X horas para monitorear su estado.
+Como Enfermero, quiero escribir una nota sobre una observación importante del paciente para comunicarla al equipo médico.
+Rol: AdminHospital
+Como AdminHospital, quiero crear la cuenta de usuario para un nuevo médico contratado para darle acceso al sistema.
+Como AdminHospital, quiero desactivar la cuenta de un enfermero que renunció para revocar su acceso.
+Como AdminHospital, quiero registrar una nueva habitación y sus camas para ampliar la capacidad del centro.
+Como AdminHospital, quiero marcar una cama como "en mantenimiento" para que no sea asignada a pacientes.
+Como AdminHospital, quiero ingresar un nuevo lote de medicamentos al stock, con su fecha de vencimiento para tener un control preciso del inventario.
+Como AdminHospital, quiero definir el precio de una "Consulta Pediátrica" en la lista de prestaciones para que el sistema sepa cuánto cobrar.
+Como AdminHospital, quiero ver un reporte de facturas pendientes de pago para gestionar las cobranzas.
+Como AdminHospital, quiero revisar quién modificó los datos de un paciente en la auditoría para investigar un posible error.
+Como AdminHospital, quiero agregar una nueva "Especialidad Médica" y marcarla como quirúrgica para que los médicos correspondientes puedan programar cirugías.
+Rol: SuperAdmin
+Como SuperAdmin, quiero crear un nuevo rol llamado "Auditor Externo" para darle permisos específicos de solo lectura.
+Como SuperAdmin, quiero quitarle el permiso de "eliminar pacientes" al rol Recepcionista para mejorar la seguridad de los datos.
+8. Estado del arte y Análisis del mercado
+(Esta sección se mantiene igual que en la versión anterior, ya que el contexto del mercado y las tecnologías no ha cambiado).
+9. Actividades (Sprints - Reporte de Avance)
+Este proyecto se gestiona en el marco de la implementación de metodologías ágiles como SCRUM y KANBAN en la ruta de desarrollo del sistema. La estrategia se organizó en Sprints con una planificación por etapas, enfocándose primero en la estructura de datos (incluyendo la definición del nuevo modelo de 34 tablas) y el desarrollo visual completo (Frontend), para luego construir los servicios (Backend) y realizar la integración final.

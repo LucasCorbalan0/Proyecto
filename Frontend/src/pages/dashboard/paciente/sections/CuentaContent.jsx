@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
 import apiClient from '../../../../services/apiClient'
+import { api } from '../services/api'
 
 export function CuentaContent() {
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingMedical, setIsEditingMedical] = useState(false);
+  const [isEditingContacto, setIsEditingContacto] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [datosPersonales, setDatosPersonales] = useState({
@@ -49,9 +52,13 @@ export function CuentaContent() {
         });
         
         if (responsePaciente.data && responseHistoria.data) {
-          const pacienteData = responsePaciente.data.data ? responsePaciente.data.data[0] : responsePaciente.data;
-          const historiaData = responseHistoria.data.data ? responseHistoria.data.data[0] : responseHistoria.data;
-          
+          // The backend may return data as an object or an array depending on the endpoint.
+          const rawPaciente = responsePaciente.data.data !== undefined ? responsePaciente.data.data : responsePaciente.data;
+          const rawHistoria = responseHistoria.data.data !== undefined ? responseHistoria.data.data : responseHistoria.data;
+
+          const pacienteData = Array.isArray(rawPaciente) ? rawPaciente[0] : rawPaciente || {};
+          const historiaData = Array.isArray(rawHistoria) ? rawHistoria[0] : rawHistoria || {};
+
           const datosActualizados = {
             nombre: pacienteData?.nombres || pacienteData?.nombre || '',
             apellido: pacienteData?.apellidos || pacienteData?.apellido || '',
@@ -61,13 +68,16 @@ export function CuentaContent() {
             obraSocial: pacienteData?.obra_social || '',
             telefono: pacienteData?.telefono || '',
             direccion: pacienteData?.direccion || '',
-            grupoSanguineo: historiaData?.tipo_sangre || '',
-            alergias: historiaData?.alergias_conocidas || '',
-            condicionesCronicas: historiaData?.comorbilidades_cronicas || '',
-            medicacionActual: historiaData?.medicacion_habitual || '',
-            antecedentesQuirurgicos: historiaData?.antecedentes_quirurgicos || ''
+            grupoSanguineo: historiaData?.tipo_sangre || historiaData?.grupo_sanguineo || '',
+            alergias: historiaData?.alergias_conocidas || historiaData?.alergias || '',
+            condicionesCronicas: historiaData?.comorbilidades_cronicas || historiaData?.condiciones_cronicas || '',
+            medicacionActual: historiaData?.medicacion_habitual || historiaData?.medicacion_actual || '',
+            antecedentesQuirurgicos: historiaData?.antecedentes_quirurgicos || '',
+            contactoEmergenciaNombre: historiaData?.contacto_emergencia_nombre || '',
+            contactoEmergenciaTelefono: historiaData?.contacto_emergencia_telefono || '',
+            contactoEmergenciaRelacion: historiaData?.contacto_emergencia_relacion || ''
           };
-          
+
           setDatosPersonales(datosActualizados);
           setError(null);
         }
@@ -90,11 +100,24 @@ export function CuentaContent() {
       if (!idPaciente || !token) {
         throw new Error('No se encontró el ID del paciente o el token');
       }
-      await apiClient.put(`/pacientes/datos/${idPaciente}`, datosPersonales, {
+      // Enviar solo los campos editables
+      const payload = {
+        telefono: datosPersonales.telefono || null,
+        direccion: datosPersonales.direccion || null,
+        email: datosPersonales.email || null
+      };
+
+      const response = await apiClient.put(`/pacientes/datos/${idPaciente}`, payload, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
+
+      // Actualizar estado con lo que devuelva el backend (normalizado por api.js si es usado allí)
+      const updated = response.data?.data || response.data;
+      if (updated) {
+        setDatosPersonales(prev => ({ ...prev, telefono: updated.telefono || prev.telefono, direccion: updated.direccion || prev.direccion, email: updated.email || prev.email }));
+      }
       setIsEditing(false);
       toast.success("Datos actualizados correctamente");
     } catch (err) {
@@ -179,15 +202,42 @@ export function CuentaContent() {
             </div>
             <div>
               <label className="text-sm text-gray-500 mb-1 block">Email</label>
-              <p className="text-gray-900 font-medium">{datosPersonales.email || "No especificado"}</p>
+              {isEditing ? (
+                <input
+                  type="email"
+                  value={datosPersonales.email}
+                  onChange={(e) => setDatosPersonales(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-md px-3 py-2"
+                />
+              ) : (
+                <p className="text-gray-900 font-medium">{datosPersonales.email || "No especificado"}</p>
+              )}
             </div>
             <div>
               <label className="text-sm text-gray-500 mb-1 block">Teléfono</label>
-              <p className="text-gray-900 font-medium">{datosPersonales.telefono || "No especificado"}</p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={datosPersonales.telefono}
+                  onChange={(e) => setDatosPersonales(prev => ({ ...prev, telefono: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-md px-3 py-2"
+                />
+              ) : (
+                <p className="text-gray-900 font-medium">{datosPersonales.telefono || "No especificado"}</p>
+              )}
             </div>
             <div className="md:col-span-2">
               <label className="text-sm text-gray-500 mb-1 block">Dirección</label>
-              <p className="text-gray-900 font-medium">{datosPersonales.direccion || "No especificado"}</p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={datosPersonales.direccion}
+                  onChange={(e) => setDatosPersonales(prev => ({ ...prev, direccion: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-md px-3 py-2"
+                />
+              ) : (
+                <p className="text-gray-900 font-medium">{datosPersonales.direccion || "No especificado"}</p>
+              )}
             </div>
           </div>
         </div>
@@ -196,43 +246,154 @@ export function CuentaContent() {
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Información Médica</h2>
           <div className="space-y-4">
-            <div>
-              <label className="text-sm text-gray-500 mb-1 block">Grupo Sanguíneo</label>
-              <p className="text-gray-900 font-medium">O+</p>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm text-gray-500">Datos médicos</h3>
+              {!isEditingMedical ? (
+                <button onClick={() => setIsEditingMedical(true)} className="text-sm text-blue-600 hover:underline">Editar</button>
+              ) : null}
             </div>
-            <div>
-              <label className="text-sm text-gray-500 mb-1 block">Alergias</label>
-              <p className="text-gray-900 font-medium">Penicilina</p>
-            </div>
-            <div>
-              <label className="text-sm text-gray-500 mb-1 block">Condiciones Crónicas</label>
-              <p className="text-gray-900 font-medium">Hipertensión</p>
-            </div>
+
+            {isEditingMedical ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm text-gray-500 mb-1 block">Grupo Sanguíneo</label>
+                  <input value={datosPersonales.grupoSanguineo} onChange={e => setDatosPersonales(prev => ({ ...prev, grupoSanguineo: e.target.value }))} className="w-full border border-gray-200 rounded-md px-3 py-2" />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500 mb-1 block">Alergias</label>
+                  <input value={datosPersonales.alergias} onChange={e => setDatosPersonales(prev => ({ ...prev, alergias: e.target.value }))} className="w-full border border-gray-200 rounded-md px-3 py-2" />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500 mb-1 block">Condiciones Crónicas</label>
+                  <input value={datosPersonales.condicionesCronicas} onChange={e => setDatosPersonales(prev => ({ ...prev, condicionesCronicas: e.target.value }))} className="w-full border border-gray-200 rounded-md px-3 py-2" />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500 mb-1 block">Medicación habitual</label>
+                  <input value={datosPersonales.medicacionActual} onChange={e => setDatosPersonales(prev => ({ ...prev, medicacionActual: e.target.value }))} className="w-full border border-gray-200 rounded-md px-3 py-2" />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500 mb-1 block">Antecedentes Quirúrgicos</label>
+                  <input value={datosPersonales.antecedentesQuirurgicos} onChange={e => setDatosPersonales(prev => ({ ...prev, antecedentesQuirurgicos: e.target.value }))} className="w-full border border-gray-200 rounded-md px-3 py-2" />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={async () => {
+                    // Guardar cambios médicos
+                    try {
+                      setLoading(true);
+                      const idPaciente = localStorage.getItem('id_paciente');
+                      const payload = {
+                        tipo_sangre: datosPersonales.grupoSanguineo || null,
+                        alergias_conocidas: datosPersonales.alergias || null,
+                        comorbilidades_cronicas: datosPersonales.condicionesCronicas || null,
+                        medicacion_habitual: datosPersonales.medicacionActual || null,
+                        antecedentes_quirurgicos: datosPersonales.antecedentesQuirurgicos || null
+                      };
+                      const updated = await api.actualizarHistoriaClinica(idPaciente, payload);
+                      // actualizar estado local con la respuesta
+                      setDatosPersonales(prev => ({
+                        ...prev,
+                        grupoSanguineo: updated.tipo_sangre || prev.grupoSanguineo,
+                        alergias: updated.alergias_conocidas || prev.alergias,
+                        condicionesCronicas: updated.comorbilidades_cronicas || prev.condicionesCronicas,
+                        medicacionActual: updated.medicacion_habitual || prev.medicacionActual,
+                        antecedentesQuirurgicos: updated.antecedentes_quirurgicos || prev.antecedentesQuirurgicos
+                      }));
+                      setIsEditingMedical(false);
+                      toast.success('Información médica actualizada');
+                    } catch (err) {
+                      console.error('Error al actualizar historia clínica:', err);
+                      toast.error('Error al guardar información médica');
+                    } finally { setLoading(false); }
+                  }} className="px-4 py-2 bg-blue-600 text-white rounded-md">Guardar</button>
+                  <button onClick={() => { setIsEditingMedical(false); }} className="px-4 py-2 border rounded-md">Cancelar</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="text-sm text-gray-500 mb-1 block">Grupo Sanguíneo</label>
+                  <p className="text-gray-900 font-medium">{datosPersonales.grupoSanguineo || 'No especificado'}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500 mb-1 block">Alergias</label>
+                  <p className="text-gray-900 font-medium">{datosPersonales.alergias || 'No especificado'}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500 mb-1 block">Condiciones Crónicas</label>
+                  <p className="text-gray-900 font-medium">{datosPersonales.condicionesCronicas || 'No especificado'}</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
 
       {/* Contacto de Emergencia */}
-      <div className="mt-6 bg-white rounded-xl p-6 border border-gray-200">
+        <div className="mt-6 bg-white rounded-xl p-6 border border-gray-200">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Contacto de Emergencia</h2>
-          <button className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-medium transition-colors">
-            Editar
-          </button>
+          {!isEditingContacto ? (
+            <button onClick={() => setIsEditingContacto(true)} className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-medium transition-colors">Editar</button>
+          ) : null}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <label className="text-sm text-gray-500 mb-1 block">Nombre</label>
-            <p className="text-gray-900 font-medium">Carlos González</p>
-          </div>
-          <div>
-            <label className="text-sm text-gray-500 mb-1 block">Relación</label>
-            <p className="text-gray-900 font-medium">Esposo</p>
-          </div>
-          <div>
-            <label className="text-sm text-gray-500 mb-1 block">Teléfono</label>
-            <p className="text-gray-900 font-medium">+54 11 4567-8901</p>
-          </div>
+          {isEditingContacto ? (
+            <>
+              <div>
+                <label className="text-sm text-gray-500 mb-1 block">Nombre</label>
+                <input value={datosPersonales.contactoEmergenciaNombre} onChange={e => setDatosPersonales(prev => ({ ...prev, contactoEmergenciaNombre: e.target.value }))} className="w-full border border-gray-200 rounded-md px-3 py-2" />
+              </div>
+              <div>
+                <label className="text-sm text-gray-500 mb-1 block">Relación</label>
+                <input value={datosPersonales.contactoEmergenciaRelacion} onChange={e => setDatosPersonales(prev => ({ ...prev, contactoEmergenciaRelacion: e.target.value }))} className="w-full border border-gray-200 rounded-md px-3 py-2" />
+              </div>
+              <div>
+                <label className="text-sm text-gray-500 mb-1 block">Teléfono</label>
+                <input value={datosPersonales.contactoEmergenciaTelefono} onChange={e => setDatosPersonales(prev => ({ ...prev, contactoEmergenciaTelefono: e.target.value }))} className="w-full border border-gray-200 rounded-md px-3 py-2" />
+              </div>
+              <div className="md:col-span-3 flex gap-2 mt-2">
+                <button onClick={async () => {
+                  try {
+                    setLoading(true);
+                    const idPaciente = localStorage.getItem('id_paciente');
+                    const payload = {
+                      contacto_emergencia_nombre: datosPersonales.contactoEmergenciaNombre || null,
+                      contacto_emergencia_telefono: datosPersonales.contactoEmergenciaTelefono || null,
+                      contacto_emergencia_relacion: datosPersonales.contactoEmergenciaRelacion || null
+                    };
+                    const updated = await api.actualizarHistoriaClinica(idPaciente, payload);
+                    setDatosPersonales(prev => ({
+                      ...prev,
+                      contactoEmergenciaNombre: updated.contacto_emergencia_nombre || prev.contactoEmergenciaNombre,
+                      contactoEmergenciaTelefono: updated.contacto_emergencia_telefono || prev.contactoEmergenciaTelefono,
+                      contactoEmergenciaRelacion: updated.contacto_emergencia_relacion || prev.contactoEmergenciaRelacion
+                    }));
+                    setIsEditingContacto(false);
+                    toast.success('Contacto de emergencia actualizado');
+                  } catch (err) {
+                    console.error('Error al actualizar contacto de emergencia:', err);
+                    toast.error('Error al guardar contacto de emergencia');
+                  } finally { setLoading(false); }
+                }} className="px-4 py-2 bg-blue-600 text-white rounded-md">Guardar</button>
+                <button onClick={() => setIsEditingContacto(false)} className="px-4 py-2 border rounded-md">Cancelar</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="text-sm text-gray-500 mb-1 block">Nombre</label>
+                <p className="text-gray-900 font-medium">{datosPersonales.contactoEmergenciaNombre || 'No especificado'}</p>
+              </div>
+              <div>
+                <label className="text-sm text-gray-500 mb-1 block">Relación</label>
+                <p className="text-gray-900 font-medium">{datosPersonales.contactoEmergenciaRelacion || 'No especificado'}</p>
+              </div>
+              <div>
+                <label className="text-sm text-gray-500 mb-1 block">Teléfono</label>
+                <p className="text-gray-900 font-medium">{datosPersonales.contactoEmergenciaTelefono || 'No especificado'}</p>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

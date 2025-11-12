@@ -14,8 +14,10 @@ export default function RegistroModal({ open, onClose, onSwitchToLogin }) {
     apellido: '',
     dni: '',
     fecha_nacimiento: '',
+    genero: '',
     email: '',
     telefono: '',
+    direccion: '',
     nombre_usuario: '',
     password: '',
     id_rol_sistema: 6, // Rol de paciente
@@ -141,6 +143,26 @@ export default function RegistroModal({ open, onClose, onSwitchToLogin }) {
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
                     <input id="telefono" placeholder="" value={formData.telefono} onChange={handleChange} className={inputWithIconStyle} />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="genero" className="text-sm font-medium text-gray-700">Género</label>
+                  <select id="genero" value={formData.genero} onChange={handleChange} required className={inputBaseStyle}>
+                    <option value="">Seleccionar</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">Femenino</option>
+                    <option value="Otro">Otro</option>
+                    <option value="Prefiero no decir">Prefiero no decir</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="direccion" className="text-sm font-medium text-gray-700">Dirección</label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
+                    <input id="direccion" placeholder="Calle, número, ciudad" value={formData.direccion} onChange={handleChange} className={inputWithIconStyle} />
                   </div>
                 </div>
               </div>

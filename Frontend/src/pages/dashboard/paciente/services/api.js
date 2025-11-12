@@ -177,7 +177,20 @@ export const api = {
   getDatosPersonales: async (pacienteId) => {
     try {
       const response = await apiClient.get(`/pacientes/datos/${pacienteId}`)
-      return response.data.data || response.data
+      // Normalizar la respuesta: asegurar que siempre devolvamos un objeto
+      const raw = response.data.data !== undefined ? response.data.data : response.data
+      const payload = Array.isArray(raw) ? raw[0] : raw || {}
+      return {
+        nombre: payload.nombres || payload.nombre || '',
+        apellido: payload.apellidos || payload.apellido || '',
+        email: payload.email || '',
+        dni: payload.documento || payload.dni || '',
+        fecha_nacimiento: payload.fecha_nacimiento || payload.fechaNacimiento || '',
+        obra_social: payload.obra_social || payload.obraSocial || '',
+        telefono: payload.telefono || '',
+        direccion: payload.direccion || '',
+        id_paciente: payload.id_paciente || payload.id || null
+      }
     } catch (error) {
       console.error('Error al obtener datos personales:', error)
       throw error
@@ -209,9 +222,33 @@ export const api = {
   getHistoriaClinica: async (pacienteId) => {
     try {
       const response = await apiClient.get(`/pacientes/${pacienteId}/historia-clinica`)
-      return response.data.data || response.data
+      const raw = response.data.data !== undefined ? response.data.data : response.data
+      const payload = Array.isArray(raw) ? raw[0] : raw || {}
+      return {
+        id_historia: payload.id_historia || payload.idHistoria || null,
+        tipo_sangre: payload.tipo_sangre || payload.tipoSangre || payload.grupo_sanguineo || '',
+        factor_rh: payload.factor_rh || payload.factorRh || null,
+        alergias_conocidas: payload.alergias_conocidas || payload.alergias || '',
+        comorbilidades_cronicas: payload.comorbilidades_cronicas || payload.condiciones_cronicas || '',
+        medicacion_habitual: payload.medicacion_habitual || payload.medicacion_actual || '',
+        antecedentes_quirurgicos: payload.antecedentes_quirurgicos || '',
+        contacto_emergencia_nombre: payload.contacto_emergencia_nombre || payload.contactoEmergenciaNombre || '',
+        contacto_emergencia_telefono: payload.contacto_emergencia_telefono || payload.contactoEmergenciaTelefono || ''
+      }
     } catch (error) {
       console.error('Error al obtener historia clínica:', error)
+      throw error
+    }
+  }
+,
+
+  // Actualizar o crear historia clínica
+  actualizarHistoriaClinica: async (pacienteId, datos) => {
+    try {
+      const response = await apiClient.put(`/pacientes/${pacienteId}/historia-clinica`, datos)
+      return response.data.data || response.data
+    } catch (error) {
+      console.error('Error al actualizar historia clínica:', error)
       throw error
     }
   }
