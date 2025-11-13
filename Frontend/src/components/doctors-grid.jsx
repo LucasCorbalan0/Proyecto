@@ -80,15 +80,25 @@ export default function DoctorsGrid() {
       education: "Yale School of Medicine",
       experience: "13 años",
     },
+    {
+      id: 9,
+      name: "Dr. Miguel Sánchez",
+      specialty: "Neumología",
+      image: "/professional-male-orthopedic-surgeon-doctor.jpg",
+      description:
+        "Neumólogo especializado en enfermedades del sistema respiratorio. Experto en asma, EPOC, fibrosis pulmonar y enfermedades pulmonares intersticiales. Certificado en medicina crítica y cuidados respiratorios avanzados.",
+      education: "Pontificia Universidad Católica",
+      experience: "17 años",
+    },
   ]
 
   return (
-    <section className="py-20 px-6 bg-background">
+    <section className="py-12 px-6 bg-transparent">
       <div className="container mx-auto max-w-7xl">
         {/* Header Section */}
         <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 text-balance">Nuestro Equipo Médico</h1>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+          <h1 className="text-4xl md:text-5xl font-bold text-black mb-4 drop-shadow-lg">Nuestro Equipo Médico</h1>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed" style={{textShadow: '0 4px 8px rgba(0, 0, 0, 0.3)'}}>
             Contamos con un equipo de profesionales altamente calificados y comprometidos con tu salud. Cada uno de
             nuestros médicos cuenta con amplia experiencia y formación internacional.
           </p>
@@ -99,7 +109,7 @@ export default function DoctorsGrid() {
           {doctors.map((doctor) => (
             <div
               key={doctor.id}
-              className="group bg-card rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-border"
+              className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-border"
             >
               {/* Doctor Image */}
               <div className="relative h-80 overflow-hidden bg-muted">
@@ -108,14 +118,13 @@ export default function DoctorsGrid() {
                   alt={doctor.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
 
               {/* Doctor Info */}
               <div className="p-6 space-y-4">
                 <div>
-                  <h3 className="text-2xl font-bold text-foreground mb-1">{doctor.name}</h3>
-                  <p className="text-primary font-semibold text-lg">{doctor.specialty}</p>
+                  <h3 className="text-2xl font-bold text-black mb-1">{doctor.name}</h3>
+                  <p className="text-blue-600 font-semibold text-lg">{doctor.specialty}</p>
                 </div>
 
                 <p className="text-muted-foreground leading-relaxed text-sm">{doctor.description}</p>
