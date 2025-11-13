@@ -1,7 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { execute } = require('../config/database');
+const { execute, JWT_SECRET } = require('../config/database');
 
 
 
@@ -46,7 +46,7 @@ const iniciarSesion = asyncHandler(async (req, res) => {
             rol: usuario.id_rol_sistema,
             nombre_usuario: usuario.nombre_usuario
         },
-        process.env.JWT_SECRET,
+        JWT_SECRET,
         { expiresIn: '30d' }
     );
 

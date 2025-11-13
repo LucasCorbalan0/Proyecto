@@ -2,16 +2,38 @@ import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
 import Modal from './Modal'
 import { Plus, Edit } from 'lucide-react'
+import apiClient from '../../services/apiClient'
 
 export default function EspecialidadesContent() {
-  const [esp, setEsp] = useState([
-    { id: 1, nombre: "Cardiología", es_quirurgica: false },
-    { id: 2, nombre: "Cirugía General", es_quirurgica: true },
-  ])
+  const [esp, setEsp] = useState([])
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ nombre: "", es_quirurgica: false })
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [dataLoading, setDataLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchEspecialidades = async () => {
+      setDataLoading(true)
+      try {
+        const response = await apiClient.get('/admin/especialidades')
+        const data = response.data?.data ?? response.data ?? []
+        const normalized = (Array.isArray(data) ? data : []).map(e => ({
+          id_especialidad: e.id_especialidad ?? e.id,
+          nombre: e.nombre ?? '',
+          es_quirurgica: e.es_quirurgica ? true : false
+        }))
+        setEsp(normalized)
+      } catch (error) {
+        console.error('Error al cargar especialidades:', error)
+        toast.error('Error al cargar especialidades')
+        setEsp([])
+      } finally {
+        setDataLoading(false)
+      }
+    }
+    fetchEspecialidades()
+  }, [])
 
   useEffect(() => { if (editing) setForm({ nombre: editing.nombre, es_quirurgica: editing.es_quirurgica }) }, [editing])
 
@@ -21,20 +43,39 @@ export default function EspecialidadesContent() {
   const save = async () => {
     if (!form.nombre) { toast.error('Nombre requerido'); return }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 600))
-    if (editing) {
-      setEsp(esp.map(x => x.id === editing.id ? { ...x, ...form } : x))
-      toast.success('Especialidad actualizada (simulado)')
-    } else {
-      setEsp([{ id: Date.now(), ...form }, ...esp])
-      toast.success('Especialidad agregada (simulado)')
+    try {
+      if (editing) {
+        await apiClient.put(`/admin/especialidades/${editing.id_especialidad}`, form)
+        setEsp(esp.map(x => x.id_especialidad === editing.id_especialidad ? { ...x, ...form } : x))
+        toast.success('Especialidad actualizada')
+      } else {
+        const response = await apiClient.post('/admin/especialidades', form)
+        const newId = response.data?.id_especialidad || Date.now()
+        setEsp([{ id_especialidad: newId, ...form }, ...esp])
+        toast.success('Especialidad agregada')
+      }
+      setModalOpen(false)
+      setEditing(null)
+    } catch (error) {
+      console.error('Error al guardar especialidad:', error)
+      toast.error('Error al guardar especialidad')
+    } finally {
+      setLoading(false)
     }
-    setModalOpen(false)
-    setEditing(null)
-    setLoading(false)
   }
 
-  const toggleSurgical = (id) => { setEsp(esp.map(e => e.id === id ? { ...e, es_quirurgica: !e.es_quirurgica } : e)); toast.success('Actualizado (simulado)') }
+  const toggleSurgical = async (id) => { 
+    try {
+      const esp_to_update = esp.find(e => e.id_especialidad === id)
+      if (!esp_to_update) return
+      await apiClient.put(`/admin/especialidades/${id}`, { es_quirurgica: !esp_to_update.es_quirurgica })
+      setEsp(esp.map(e => e.id_especialidad === id ? { ...e, es_quirurgica: !e.es_quirurgica } : e))
+      toast.success('Actualizado')
+    } catch (error) {
+      console.error('Error al actualizar:', error)
+      toast.error('Error al actualizar')
+    }
+  }
 
   return (
     <>
@@ -46,29 +87,34 @@ export default function EspecialidadesContent() {
       </div>
 
       <div className="bg-white p-6 rounded-xl border border-gray-200">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-6 py-3 text-xs text-gray-500">Nombre</th>
-                <th className="px-6 py-3 text-xs text-gray-500">Es Quirúrgica</th>
-                <th className="px-6 py-3 text-xs text-gray-500">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {esp.map(e => (
-                <tr key={e.id}>
-                  <td className="px-6 py-4">{e.nombre}</td>
-                  <td className="px-6 py-4">{e.es_quirurgica ? 'Sí' : 'No'}</td>
-                  <td className="px-6 py-4 flex gap-2">
-                    <button onClick={() => openEdit(e)} className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-sm"><Edit className="w-4 h-4" /></button>
-                    <button onClick={() => toggleSurgical(e.id)} className={`px-2 py-1 rounded text-sm ${e.es_quirurgica ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>{e.es_quirurgica ? 'Quitar quirúrgica' : 'Marcar quirúrgica'}</button>
-                  </td>
+        {dataLoading ? (
+          <div className="text-center py-8"><p className="text-gray-500">Cargando especialidades...</p></div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-6 py-3 text-xs text-gray-500">Nombre</th>
+                  <th className="px-6 py-3 text-xs text-gray-500">Es Quirúrgica</th>
+                  <th className="px-6 py-3 text-xs text-gray-500">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y">
+                {esp.map(e => (
+                  <tr key={e.id_especialidad}>
+                    <td className="px-6 py-4">{e.nombre}</td>
+                    <td className="px-6 py-4">{e.es_quirurgica ? 'Sí' : 'No'}</td>
+                    <td className="px-6 py-4 flex gap-2">
+                      <button onClick={() => openEdit(e)} className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-sm"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => toggleSurgical(e.id_especialidad)} className={`px-2 py-1 rounded text-sm ${e.es_quirurgica ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>{e.es_quirurgica ? 'Quitar quirúrgica' : 'Marcar quirúrgica'}</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {esp.length === 0 && <p className="p-4 text-sm text-gray-500">No hay especialidades.</p>}
+          </div>
+        )}
       </div>
 
       {modalOpen && (

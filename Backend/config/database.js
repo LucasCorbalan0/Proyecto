@@ -1,6 +1,6 @@
 const mysql = require('mysql2/promise');
 
-
+// Configuración de base de datos
 const dbConfig = {
     host: 'localhost',
     port: 3306,
@@ -14,7 +14,7 @@ const dbConfig = {
 
 const pool = mysql.createPool(dbConfig);
 
-//una consulta parametrizada para ahorrar repetir codigo en los controller
+// Ejecuta consultas SQL parametrizadas para evitar SQL injection
 const execute = async (sql, params = []) => {
     try {
         const [rows] = await pool.execute(sql, params);
@@ -25,7 +25,13 @@ const execute = async (sql, params = []) => {
     }
 };
 
-
+// Verifica la conexión a la base de datos
 pool.getConnection().then(c => c.release()).catch(err => console.error('DB connection error:', err.message));
 
-module.exports = { pool, execute };
+// Exporta la configuración y utilidades
+module.exports = { 
+    pool, 
+    execute,
+    // JWT Secret fallback (ya que no usamos .env)
+    JWT_SECRET: process.env.JWT_SECRET || 'narutoUzumaki12345'
+};

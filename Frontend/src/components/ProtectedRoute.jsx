@@ -10,18 +10,10 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <div>Cargando...</div>;
   }
 
-  // TODO: Descomentar esto cuando tengamos login funcional
-  // // Si no hay usuario, redirigir al inicio
-  // if (!user) {
-  //   console.log('ProtectedRoute - No user, redirecting to home');
-  //   return <Navigate to="/" replace />;
-  // }
-
-  // // Si se especifican roles permitidos y el usuario no tiene el rol adecuado
-  // if (allowedRoles && !allowedRoles.includes(user.rol)) {
-  //   console.log('ProtectedRoute - User role not allowed. User role:', user.rol, 'Allowed roles:', allowedRoles);
-  //   return <Navigate to="/" replace />;
-  // }
+  // Verificar que el usuario tenga un rol permitido
+  if (!user || !allowedRoles.includes(user.rol)) {
+    return <Navigate to="/" replace />;
+  }
 
   return children;
 }

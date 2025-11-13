@@ -18,6 +18,15 @@ export function AuthProvider({ children }) {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    // Limpiar datos individuales guardados por compatibilidad
+    localStorage.removeItem('id_paciente');
+    localStorage.removeItem('nombre');
+    localStorage.removeItem('apellido');
+    localStorage.removeItem('email');
+    localStorage.removeItem('telefono');
+    localStorage.removeItem('direccion');
+    localStorage.removeItem('dni');
+    localStorage.removeItem('rol');
     navigate('/');
   }, [navigate]);
 
@@ -49,7 +58,9 @@ export function AuthProvider({ children }) {
     localStorage.setItem('user', JSON.stringify(userData));
     
     // Redirige al panel correspondiente según el rol del usuario
-    switch (userData.rol) {
+    // El rol viene como id_rol_sistema (número) que coincide con las constantes ROLES
+    const rolId = userData.rol || userData.id_rol_sistema;
+    switch (rolId) {
       case ROLES.SUPERADMIN:
         navigate('/dashboard/superadmin');
         break;
@@ -81,4 +92,4 @@ export function AuthProvider({ children }) {
   );
 }
 
-// Nota: el hook useAuth (que usa este contexto) está en un archivo separado llamado useAuth.js
+

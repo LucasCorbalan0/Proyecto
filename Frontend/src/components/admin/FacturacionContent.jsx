@@ -1,29 +1,59 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
 import Modal from './Modal'
 import { Download } from 'lucide-react'
 import { jsPDF } from 'jspdf'
+import apiClient from '../../services/apiClient'
 
 export default function FacturacionContent() {
-  const invoices = [
-    { id: 1, numero: "FAC-2025-0342", fecha: "2025-03-20", concepto: "Internación", monto: 250000, estado: "Pendiente" },
-    { id: 2, numero: "FAC-2025-0298", fecha: "2025-02-28", concepto: "Consulta", monto: 8500, estado: "Pagada" },
-  ]
+  const [facturas, setFacturas] = useState([])
   const [payments, setPayments] = useState([])
   const [selected, setSelected] = useState(null)
   const [modalPayOpen, setModalPayOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [dataLoading, setDataLoading] = useState(true)
   const [payForm, setPayForm] = useState({ monto: 0, metodo: "Transferencia" })
 
-  const openPayModal = (inv) => { setSelected(inv); setPayForm({ monto: inv.monto, metodo: "Transferencia" }); setModalPayOpen(true) }
+  useEffect(() => {
+    const fetchFacturas = async () => {
+      setDataLoading(true)
+      try {
+        const response = await apiClient.get('/admin/facturas')
+        const data = response.data?.data ?? response.data ?? []
+        const normalized = (Array.isArray(data) ? data : []).map(f => ({
+          id_factura: f.id_factura ?? f.id,
+          paciente: f.paciente ?? 'N/A',
+          fecha_emision: f.fecha_emision ? new Date(f.fecha_emision).toLocaleDateString() : 'N/A',
+          total: f.total ?? 0,
+          estado_pago: f.estado_pago ?? 'Pendiente'
+        }))
+        setFacturas(normalized)
+      } catch (error) {
+        console.error('Error al cargar facturas:', error)
+        toast.error('Error al cargar facturas')
+        setFacturas([])
+      } finally {
+        setDataLoading(false)
+      }
+    }
+    fetchFacturas()
+  }, [])
+
+  const openPayModal = (inv) => { setSelected(inv); setPayForm({ monto: inv.total, metodo: "Transferencia" }); setModalPayOpen(true) }
 
   const registerPartial = async () => {
     setLoading(true)
-    await new Promise(r => setTimeout(r, 900))
-    setPayments([{ id: Date.now(), facturaId: selected.id, fecha: new Date().toLocaleDateString(), monto: Number(payForm.monto), metodo: payForm.metodo }, ...payments])
-    toast.success("Pago registrado (simulado)")
-    setModalPayOpen(false)
-    setLoading(false)
+    try {
+      await apiClient.post(`/admin/pagos`, { id_factura: selected.id_factura, monto_pago: payForm.monto, metodo_pago: payForm.metodo })
+      setPayments([{ id: Date.now(), facturaId: selected.id_factura, fecha: new Date().toLocaleDateString(), monto: Number(payForm.monto), metodo: payForm.metodo }, ...payments])
+      toast.success("Pago registrado")
+      setModalPayOpen(false)
+    } catch (error) {
+      console.error('Error al registrar pago:', error)
+      toast.error('Error al registrar pago')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const exportResumenPDF = () => {
@@ -31,9 +61,9 @@ export default function FacturacionContent() {
     doc.setFontSize(16)
     doc.text("Resumen Facturación", 20, 20)
     let y = 40
-    invoices.forEach(inv => { doc.setFontSize(12); doc.text(`${inv.numero} — ${inv.concepto} — $${inv.monto.toLocaleString()} — ${inv.estado}`, 20, y); y += 8 })
+    facturas.forEach(f => { doc.setFontSize(12); doc.text(`${f.paciente} — $${typeof f.total === 'number' ? f.total.toFixed(2) : f.total} — ${f.estado_pago}`, 20, y); y += 8 })
     doc.save("resumen_facturacion.pdf")
-    toast.success("PDF descargado (simulado)")
+    toast.success("PDF descargado")
   }
 
   return (
@@ -48,38 +78,41 @@ export default function FacturacionContent() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl border border-gray-200">
           <h3 className="font-semibold mb-4">Facturas</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-6 py-3 text-xs text-gray-500">N°</th>
-                  <th className="px-6 py-3 text-xs text-gray-500">Fecha</th>
-                  <th className="px-6 py-3 text-xs text-gray-500">Concepto</th>
-                  <th className="px-6 py-3 text-xs text-gray-500">Monto</th>
-                  <th className="px-6 py-3 text-xs text-gray-500">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {invoices.map(inv => (
-                  <tr key={inv.id} onClick={() => setSelected(inv)} className="hover:bg-gray-50 cursor-pointer">
-                    <td className="px-6 py-4">{inv.numero}</td>
-                    <td className="px-6 py-4">{inv.fecha}</td>
-                    <td className="px-6 py-4">{inv.concepto}</td>
-                    <td className="px-6 py-4">${inv.monto.toLocaleString()}</td>
-                    <td className="px-6 py-4">{inv.estado}</td>
+          {dataLoading ? (
+            <div className="text-center py-8"><p className="text-gray-500">Cargando facturas...</p></div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-6 py-3 text-xs text-gray-500">Paciente</th>
+                    <th className="px-6 py-3 text-xs text-gray-500">Fecha</th>
+                    <th className="px-6 py-3 text-xs text-gray-500">Monto</th>
+                    <th className="px-6 py-3 text-xs text-gray-500">Estado</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y">
+                  {facturas.map(f => (
+                    <tr key={f.id_factura} onClick={() => setSelected(f)} className="hover:bg-gray-50 cursor-pointer">
+                      <td className="px-6 py-4">{f.paciente}</td>
+                      <td className="px-6 py-4">{f.fecha_emision}</td>
+                      <td className="px-6 py-4">${typeof f.total === 'number' ? f.total.toFixed(2) : f.total}</td>
+                      <td className="px-6 py-4"><span className={`px-2 py-1 rounded text-xs font-medium ${f.estado_pago === 'Pagada' ? 'bg-green-100 text-green-800' : f.estado_pago === 'Anulada' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{f.estado_pago}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {facturas.length === 0 && <p className="p-4 text-sm text-gray-500">No hay facturas.</p>}
+            </div>
+          )}
         </div>
 
         <div className="bg-white p-6 rounded-xl border border-gray-200">
           <h3 className="font-semibold mb-4">Detalle / Registrar pago</h3>
           {selected ? (
             <>
-              <p className="text-sm text-gray-600 mb-2">Factura: <span className="font-medium">{selected.numero}</span></p>
-              <p className="text-sm text-gray-600 mb-4">Monto: <span className="font-medium">${selected.monto.toLocaleString()}</span></p>
+              <p className="text-sm text-gray-600 mb-2">Factura: <span className="font-medium">{selected.id_factura}</span></p>
+              <p className="text-sm text-gray-600 mb-4">Monto: <span className="font-medium">${selected.total?.toLocaleString()}</span></p>
               <div className="flex gap-2">
                 <button onClick={() => openPayModal(selected)} className="px-4 py-2 bg-green-600 text-white rounded-lg">Registrar Pago</button>
                 <button onClick={() => toast('Abrir modal pagos compuestos (simulado)')} className="px-4 py-2 bg-blue-50 rounded-lg">Pago complejo</button>

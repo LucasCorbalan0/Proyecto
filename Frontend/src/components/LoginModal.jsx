@@ -32,6 +32,10 @@ export default function LoginModal({ open, onClose, onSwitchToRegister }) {
       const { token, usuario } = response.data;
       
       localStorage.setItem('token', token);
+      // Guardar id_paciente si existe
+      if (usuario.id_paciente) {
+        localStorage.setItem('id_paciente', usuario.id_paciente);
+      }
       authLogin(usuario);
       onClose();
     } catch (err) {

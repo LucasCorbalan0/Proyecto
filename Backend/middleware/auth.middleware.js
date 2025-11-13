@@ -1,7 +1,7 @@
-// Archivo: Backend/middleware/auth.middleware.js
+
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
-const db = require('../config/database');
+const { execute, JWT_SECRET } = require('../config/database');
 
 const protect = asyncHandler(async (req, res, next) => {
     let token;
@@ -12,7 +12,7 @@ const protect = asyncHandler(async (req, res, next) => {
             token = req.headers.authorization.split(' ')[1];
 
             // Verify token
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const decoded = jwt.verify(token, JWT_SECRET);
 
             // Determinar el ID del usuario en el payload (compatible con 'id' o 'id_usuario')
             const userId = decoded.id || decoded.id_usuario; 
@@ -23,7 +23,7 @@ const protect = asyncHandler(async (req, res, next) => {
             }
             
             // Get user from database
-            const [rows] = await db.execute(
+            const rows = await execute(
                 // CORRECCIÓN: Usamos u.id_usuario y le damos un alias 'id' para consistencia con el frontend
                 `SELECT u.id_usuario AS id, u.nombre_usuario, u.id_rol_sistema, 
                         p.nombre, p.apellido, p.email, p.dni

@@ -13,11 +13,6 @@ const infraestructuraRoutes = require('./routes/infraestructuraRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const medicoRoutes = require('./routes/medicoRoutes');
 
-if (!process.env.JWT_SECRET) {
-  console.error('⚠️ JWT_SECRET no está definido en .env');
-  process.env.JWT_SECRET = 'clave_temporal_no_usar_en_produccion';
-}
-
 const app = express();
 const PORT = process.env.PORT || 3001;
 

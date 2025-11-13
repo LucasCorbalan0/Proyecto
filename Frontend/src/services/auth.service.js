@@ -1,6 +1,7 @@
 import apiClient from './apiClient.js'; // Importamos nuestro cliente Axios
 
 // Llama a POST /api/auth/login
+// Devuelve la respuesta del backend con { token, usuario }
 export const login = async (nombre_usuario, password) => {
   const response = await apiClient.post('/auth/login', {
     nombre_usuario,
@@ -9,32 +10,20 @@ export const login = async (nombre_usuario, password) => {
 
   console.log('Login response:', response.data);
   
-  // Guardamos el token JWT
+  // Guardamos el token JWT en localStorage (necesario para los interceptores de Axios)
   if (response.data.token) {
     localStorage.setItem('token', response.data.token);
   }
   
-  // Guardamos los datos del usuario
-  if (response.data.usuario) {
-    console.log('Usuario recibido:', response.data.usuario);
-    if (response.data.usuario.id_paciente) {
-      localStorage.setItem('id_paciente', response.data.usuario.id_paciente);
-    }
-    localStorage.setItem('nombre', response.data.usuario.nombre);
-    localStorage.setItem('apellido', response.data.usuario.apellido);
-    localStorage.setItem('email', response.data.usuario.email || '');
-    localStorage.setItem('telefono', response.data.usuario.telefono || '');
-    localStorage.setItem('direccion', response.data.usuario.direccion || '');
-    localStorage.setItem('dni', response.data.usuario.dni || '');
-    localStorage.setItem('rol', response.data.usuario.rol);
-  }
+  // El contexto se encarga de guardar el usuario en localStorage
+  // (en el componente LoginModal llamamos a authLogin(usuario))
   
   return response;
 };
 
 // Llama a POST /api/auth/register
 export const register = (datosDelFormulario) => {
-  // datosDelFormulario = { nombre, apellido, dni, ... }
+  // datosDelFormulario = { nombre, apellido, dni, genero, direccion, email, telefono, nombre_usuario, password }
   return apiClient.post('/auth/register', datosDelFormulario);
 };
 

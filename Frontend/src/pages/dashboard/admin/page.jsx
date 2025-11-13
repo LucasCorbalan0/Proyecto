@@ -1,9 +1,12 @@
 import { useState } from "react"
 import { Toaster } from "react-hot-toast"
+import { useAuth } from "../../../hooks/useAuth"
 import {
   Home,
   Users,
   BedDouble,
+  UserCog,
+  User,
   Box,
   Truck,
   Archive,
@@ -26,10 +29,13 @@ import {
   ReportesContent,
   AuditoriaContent,
   EspecialidadesContent,
+  MedicosContent,
+  PacientesContent,
   SidebarButton,
 } from "../../../components/admin"
 
 export default function AdminHospitalDashboard() {
+  const { user, logout } = useAuth()
   const [activeSection, setActiveSection] = useState("inicio")
 
   const renderContent = () => {
@@ -37,6 +43,8 @@ export default function AdminHospitalDashboard() {
       case "inicio": return <InicioContent setActive={setActiveSection} />
       case "usuarios": return <UsuariosContent />
       case "infraestructura": return <InfraestructuraContent />
+      case "medicos": return <MedicosContent />
+      case "pacientes": return <PacientesContent />
       case "productos": return <ProductosContent />
       case "compras": return <ComprasContent />
       case "prestaciones": return <PrestacionesContent />
@@ -49,10 +57,10 @@ export default function AdminHospitalDashboard() {
   }
 
   const handleAdminLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    window.location.href = '/';
+    logout()
   }
+
+  const adminName = user?.nombre || 'Administrador'
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -72,6 +80,8 @@ export default function AdminHospitalDashboard() {
         <nav className="flex-1 p-4">
           <SidebarButton icon={Home} label="Inicio" section="inicio" active={activeSection} setActive={setActiveSection} />
           <SidebarButton icon={Users} label="Gestión de Usuarios" section="usuarios" active={activeSection} setActive={setActiveSection} />
+          <SidebarButton icon={UserCog} label="Médicos" section="medicos" active={activeSection} setActive={setActiveSection} />
+          <SidebarButton icon={User} label="Pacientes" section="pacientes" active={activeSection} setActive={setActiveSection} />
           <SidebarButton icon={BedDouble} label="Infraestructura" section="infraestructura" active={activeSection} setActive={setActiveSection} />
           <SidebarButton icon={Box} label="Productos & Proveedores" section="productos" active={activeSection} setActive={setActiveSection} />
           <SidebarButton icon={Truck} label="Compras / Stock-Lotes" section="compras" active={activeSection} setActive={setActiveSection} />
@@ -97,7 +107,7 @@ export default function AdminHospitalDashboard() {
       <div className="flex-1 flex flex-col">
         <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-gray-700">Hola, <span className="font-semibold">Administrador</span></span>
+            <span className="text-gray-700">Hola, <span className="font-semibold">{adminName}</span></span>
           </div>
           <div className="flex items-center gap-3">
             <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><Bell className="w-5 h-5 text-gray-600" /></button>
