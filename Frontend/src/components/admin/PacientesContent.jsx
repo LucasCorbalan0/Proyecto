@@ -15,7 +15,9 @@ export default function PacientesContent() {
     genero: '',
     telefono: '',
     email: '',
-    direccion: ''
+    direccion: '',
+    nombre_usuario: '',
+    password: ''
   })
   const [editingId, setEditingId] = useState(null)
   const [selectedPaciente, setSelectedPaciente] = useState(null)
@@ -47,8 +49,8 @@ export default function PacientesContent() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!formData.nombre || !formData.apellido || !formData.dni) {
-      toast.error('Nombre, apellido y DNI son requeridos')
+    if (!formData.nombre || !formData.apellido || !formData.dni || !formData.nombre_usuario || !formData.password) {
+      toast.error('Complete los campos requeridos (nombre, apellido, dni, usuario, contraseña)')
       return
     }
 
@@ -78,7 +80,9 @@ export default function PacientesContent() {
       genero: paciente.genero || '',
       telefono: paciente.telefono || '',
       email: paciente.email || '',
-      direccion: paciente.direccion || ''
+      direccion: paciente.direccion || '',
+      nombre_usuario: '',
+      password: ''
     })
     setEditingId(paciente.id_paciente)
     setShowForm(true)
@@ -104,7 +108,9 @@ export default function PacientesContent() {
       genero: '',
       telefono: '',
       email: '',
-      direccion: ''
+      direccion: '',
+      nombre_usuario: '',
+      password: ''
     })
     setEditingId(null)
   }
@@ -149,6 +155,8 @@ export default function PacientesContent() {
             <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" />
             <input type="tel" name="telefono" placeholder="Teléfono" value={formData.telefono} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" />
             <input type="text" name="direccion" placeholder="Dirección" value={formData.direccion} onChange={handleInputChange} className="px-4 py-2 border rounded-lg md:col-span-2" />
+            <input type="text" name="nombre_usuario" placeholder="Usuario (para login)" value={formData.nombre_usuario} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" required disabled={editingId} />
+            <input type="password" name="password" placeholder="Contraseña" value={formData.password} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" required disabled={editingId} />
             <button type="submit" className="col-span-1 md:col-span-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
               {editingId ? 'Actualizar' : 'Crear'}
             </button>

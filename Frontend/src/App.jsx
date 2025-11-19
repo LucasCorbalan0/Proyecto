@@ -15,7 +15,7 @@ import InstalacionesPage from "./pages/instalaciones/page.jsx";
 import AdminDashboard from "./pages/dashboard/admin/page.jsx";
 import MedicoDashboard from "./pages/dashboard/medico/page.jsx";
 import PacienteDashboard from "./pages/dashboard/paciente/page.jsx";
-import HabitacionesPage from "./pages/dashboard/medico/habitaciones/page.jsx";
+
 
 
 function MainLayout({ children }) {
@@ -128,3 +128,4 @@ function App() {
 }
 
 export default App;
+

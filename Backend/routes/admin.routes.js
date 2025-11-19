@@ -44,6 +44,31 @@ const {
     createPaciente,
     updatePaciente,
     deletePaciente,
+    // Enfermeros
+    getEnfermeros,
+    createEnfermero,
+    updateEnfermero,
+    deleteEnfermero,
+    // Recepcionistas
+    getRecepcionistas,
+    createRecepcionista,
+    updateRecepcionista,
+    deleteRecepcionista,
+    // Infraestructura - Habitaciones
+    getHabitaciones,
+    createHabitacion,
+    updateHabitacion,
+    deleteHabitacion,
+    // Infraestructura - Camas
+    getCamas,
+    createCama,
+    updateCama,
+    deleteCama,
+    // Infraestructura - Quirófanos
+    getQuirofanos,
+    createQuirofano,
+    updateQuirofano,
+    deleteQuirofano,
 } = require('../controllers/adminController');
 
 // Dashboard principal del admin
@@ -98,5 +123,35 @@ router.get('/pacientes', protect, getPacientes);
 router.post('/pacientes', protect, createPaciente);
 router.put('/pacientes/:id', protect, updatePaciente);
 router.delete('/pacientes/:id', protect, deletePaciente);
+
+// ===== ENFERMEROS =====
+router.get('/enfermeros', protect, getEnfermeros);
+router.post('/enfermeros', protect, createEnfermero);
+router.put('/enfermeros/:id', protect, updateEnfermero);
+router.delete('/enfermeros/:id', protect, deleteEnfermero);
+
+// ===== RECEPCIONISTAS =====
+router.get('/recepcionistas', protect, getRecepcionistas);
+router.post('/recepcionistas', protect, createRecepcionista);
+router.put('/recepcionistas/:id', protect, updateRecepcionista);
+router.delete('/recepcionistas/:id', protect, deleteRecepcionista);
+
+// ===== INFRAESTRUCTURA - HABITACIONES =====
+router.get('/habitaciones', protect, getHabitaciones);
+router.post('/habitaciones', protect, createHabitacion);
+router.put('/habitaciones/:id', protect, updateHabitacion);
+router.delete('/habitaciones/:id', protect, deleteHabitacion);
+
+// ===== INFRAESTRUCTURA - CAMAS =====
+router.get('/camas', protect, getCamas);
+router.post('/camas', protect, createCama);
+router.put('/camas/:id', protect, updateCama);
+router.delete('/camas/:id', protect, deleteCama);
+
+// ===== INFRAESTRUCTURA - QUIRÓFANOS =====
+router.get('/quirofanos', protect, getQuirofanos);
+router.post('/quirofanos', protect, createQuirofano);
+router.put('/quirofanos/:id', protect, updateQuirofano);
+router.delete('/quirofanos/:id', protect, deleteQuirofano);
 
 module.exports = router;

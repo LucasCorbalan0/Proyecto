@@ -581,19 +581,36 @@ const getMedicos = asyncHandler(async (req, res) => {
 });
 
 const createMedico = asyncHandler(async (req, res) => {
-    const { nombre, apellido, dni, telefono, email, matricula, id_especialidad } = req.body;
+    const { nombre, apellido, dni, fecha_nacimiento, genero, direccion, telefono, email, matricula, id_especialidad, nombre_usuario, password } = req.body;
 
-    if (!nombre || !apellido || !dni || !matricula || !id_especialidad) {
+    if (!nombre || !apellido || !dni || !matricula || !id_especialidad || !nombre_usuario || !password) {
         res.status(400);
-        throw new Error('Faltan datos requeridos');
+        throw new Error('Faltan datos requeridos (nombre, apellido, dni, matricula, id_especialidad, nombre_usuario, password)');
     }
 
     try {
+        // Validar que nombre_usuario no exista
+        const existeUsuario = await execute('SELECT id_usuario FROM usuarios WHERE nombre_usuario = ?', [nombre_usuario]);
+        if (existeUsuario.length > 0) {
+            res.status(400);
+            throw new Error('El nombre de usuario ya existe');
+        }
+
+        // Validar que DNI no exista
+        const existeDni = await execute('SELECT id_persona FROM personas WHERE dni = ?', [dni]);
+        if (existeDni.length > 0) {
+            res.status(400);
+            throw new Error('El DNI ya existe');
+        }
+
+        // Usar fecha de nacimiento proporcionada o una por defecto
+        const fechaNacimiento = fecha_nacimiento || '1980-01-01';
+
         // Crear persona
         const personaResult = await execute(`
-            INSERT INTO personas (dni, nombre, apellido, telefono, email)
-            VALUES (?, ?, ?, ?, ?)
-        `, [dni, nombre, apellido, telefono || null, email || null]);
+            INSERT INTO personas (dni, nombre, apellido, fecha_nacimiento, genero, direccion, telefono, email)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [dni, nombre, apellido, fechaNacimiento, genero || null, direccion || null, telefono || null, email || null]);
 
         const id_persona = personaResult.insertId;
 
@@ -603,7 +620,17 @@ const createMedico = asyncHandler(async (req, res) => {
             VALUES (?, ?, ?)
         `, [id_persona, matricula, id_especialidad]);
 
-        res.json({ success: true, message: 'Médico creado exitosamente' });
+        // Crear usuario para login
+        const salt = await bcrypt.genSalt(10);
+        const passwordEncriptada = await bcrypt.hash(password, salt);
+
+        const id_rol_sistema = 4; // MEDICO
+        await execute(`
+            INSERT INTO usuarios (id_persona, nombre_usuario, password, id_rol_sistema, activo)
+            VALUES (?, ?, ?, ?, 1)
+        `, [id_persona, nombre_usuario, passwordEncriptada, id_rol_sistema]);
+
+        res.json({ success: true, message: 'Médico y usuario creados exitosamente' });
     } catch (error) {
         console.error('Error en createMedico:', error);
         res.status(500).json({ success: false, message: error.message || 'Error al crear médico' });
@@ -698,19 +725,33 @@ const getPacientes = asyncHandler(async (req, res) => {
 });
 
 const createPaciente = asyncHandler(async (req, res) => {
-    const { nombre, apellido, dni, fecha_nacimiento, genero, telefono, email, direccion } = req.body;
+    const { nombre, apellido, dni, fecha_nacimiento, genero, telefono, email, direccion, nombre_usuario, password } = req.body;
 
-    if (!nombre || !apellido || !dni) {
+    if (!nombre || !apellido || !dni || !nombre_usuario || !password) {
         res.status(400);
-        throw new Error('Nombre, apellido y DNI son requeridos');
+        throw new Error('Faltan datos requeridos (nombre, apellido, dni, nombre_usuario, password)');
     }
 
     try {
+        // Validar que nombre_usuario no exista
+        const existeUsuario = await execute('SELECT id_usuario FROM usuarios WHERE nombre_usuario = ?', [nombre_usuario]);
+        if (existeUsuario.length > 0) {
+            res.status(400);
+            throw new Error('El nombre de usuario ya existe');
+        }
+
+        // Validar que DNI no exista
+        const existeDni = await execute('SELECT id_persona FROM personas WHERE dni = ?', [dni]);
+        if (existeDni.length > 0) {
+            res.status(400);
+            throw new Error('El DNI ya existe');
+        }
+
         // Crear persona
         const personaResult = await execute(`
             INSERT INTO personas (dni, nombre, apellido, fecha_nacimiento, genero, telefono, email, direccion)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [dni, nombre, apellido, fecha_nacimiento || null, genero || null, telefono || null, email || null, direccion || null]);
+        `, [dni, nombre, apellido, fecha_nacimiento || '1980-01-01', genero || null, telefono || null, email || null, direccion || null]);
 
         const id_persona = personaResult.insertId;
 
@@ -720,7 +761,17 @@ const createPaciente = asyncHandler(async (req, res) => {
             VALUES (?)
         `, [id_persona]);
 
-        res.json({ success: true, message: 'Paciente creado exitosamente' });
+        // Crear usuario para login
+        const salt = await bcrypt.genSalt(10);
+        const passwordEncriptada = await bcrypt.hash(password, salt);
+
+        const id_rol_sistema = 6; // PACIENTE
+        await execute(`
+            INSERT INTO usuarios (id_persona, nombre_usuario, password, id_rol_sistema, activo)
+            VALUES (?, ?, ?, ?, 1)
+        `, [id_persona, nombre_usuario, passwordEncriptada, id_rol_sistema]);
+
+        res.json({ success: true, message: 'Paciente y usuario creados exitosamente' });
     } catch (error) {
         console.error('Error en createPaciente:', error);
         res.status(500).json({ success: false, message: error.message || 'Error al crear paciente' });
@@ -779,6 +830,596 @@ const deletePaciente = asyncHandler(async (req, res) => {
     }
 });
 
+// ============================================================================
+// ENFERMEROS
+// ============================================================================
+const getEnfermeros = asyncHandler(async (req, res) => {
+    try {
+        const enfermeros = await execute(`
+            SELECT 
+                e.id_enfermero,
+                p.id_persona,
+                p.dni,
+                p.nombre,
+                p.apellido,
+                p.email,
+                p.telefono,
+                e.matricula
+            FROM enfermeros e
+            JOIN personas p ON e.id_persona = p.id_persona
+            ORDER BY p.apellido, p.nombre
+        `);
+
+        res.json({ success: true, data: enfermeros });
+    } catch (error) {
+        console.error('Error en getEnfermeros:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+const createEnfermero = asyncHandler(async (req, res) => {
+    const { nombre, apellido, dni, fecha_nacimiento, genero, direccion, telefono, email, matricula, nombre_usuario, password } = req.body;
+
+    if (!nombre || !apellido || !dni || !nombre_usuario || !password) {
+        res.status(400);
+        throw new Error('Faltan datos requeridos (nombre, apellido, dni, nombre_usuario, password)');
+    }
+
+    try {
+        // Validar que nombre_usuario no exista
+        const existeUsuario = await execute('SELECT id_usuario FROM usuarios WHERE nombre_usuario = ?', [nombre_usuario]);
+        if (existeUsuario.length > 0) {
+            res.status(400);
+            throw new Error('El nombre de usuario ya existe');
+        }
+
+        // Validar que DNI no exista
+        const existeDni = await execute('SELECT id_persona FROM personas WHERE dni = ?', [dni]);
+        if (existeDni.length > 0) {
+            res.status(400);
+            throw new Error('El DNI ya existe');
+        }
+
+        // Usar fecha de nacimiento proporcionada o una por defecto
+        const fechaNacimiento = fecha_nacimiento || '1980-01-01';
+
+        // Crear persona
+        const personaResult = await execute(`
+            INSERT INTO personas (dni, nombre, apellido, fecha_nacimiento, genero, direccion, telefono, email)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [dni, nombre, apellido, fechaNacimiento, genero || null, direccion || null, telefono || null, email || null]);
+
+        const id_persona = personaResult.insertId;
+
+        // Crear enfermero
+        await execute(`
+            INSERT INTO enfermeros (id_persona, matricula)
+            VALUES (?, ?)
+        `, [id_persona, matricula || null]);
+
+        // Crear usuario para login
+        const salt = await bcrypt.genSalt(10);
+        const passwordEncriptada = await bcrypt.hash(password, salt);
+
+        const id_rol_sistema = 5; // ENFERMERO
+        await execute(`
+            INSERT INTO usuarios (id_persona, nombre_usuario, password, id_rol_sistema, activo)
+            VALUES (?, ?, ?, ?, 1)
+        `, [id_persona, nombre_usuario, passwordEncriptada, id_rol_sistema]);
+
+        res.json({ success: true, message: 'Enfermero y usuario creados exitosamente' });
+    } catch (error) {
+        console.error('Error en createEnfermero:', error);
+        res.status(500).json({ success: false, message: error.message || 'Error al crear enfermero' });
+    }
+});
+
+const updateEnfermero = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { nombre, apellido, telefono, email, matricula } = req.body;
+
+    try {
+        // Obtener id_persona del enfermero
+        const enfermero = await execute('SELECT id_persona FROM enfermeros WHERE id_enfermero = ?', [id]);
+        if (!enfermero.length) {
+            res.status(404);
+            throw new Error('Enfermero no encontrado');
+        }
+
+        const id_persona = enfermero[0].id_persona;
+
+        // Actualizar persona
+        if (nombre || apellido || telefono || email) {
+            await execute(`
+                UPDATE personas
+                SET nombre = COALESCE(?, nombre),
+                    apellido = COALESCE(?, apellido),
+                    telefono = COALESCE(?, telefono),
+                    email = COALESCE(?, email)
+                WHERE id_persona = ?
+            `, [nombre, apellido, telefono, email, id_persona]);
+        }
+
+        // Actualizar enfermero
+        if (matricula) {
+            await execute(`
+                UPDATE enfermeros
+                SET matricula = COALESCE(?, matricula)
+                WHERE id_enfermero = ?
+            `, [matricula, id]);
+        }
+
+        res.json({ success: true, message: 'Enfermero actualizado' });
+    } catch (error) {
+        console.error('Error en updateEnfermero:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+const deleteEnfermero = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const enfermero = await execute('SELECT id_persona FROM enfermeros WHERE id_enfermero = ?', [id]);
+        if (!enfermero.length) {
+            res.status(404);
+            throw new Error('Enfermero no encontrado');
+        }
+
+        const id_persona = enfermero[0].id_persona;
+
+        // Eliminar enfermero
+        await execute('DELETE FROM enfermeros WHERE id_enfermero = ?', [id]);
+
+        // Eliminar persona
+        await execute('DELETE FROM personas WHERE id_persona = ?', [id_persona]);
+
+        res.json({ success: true, message: 'Enfermero eliminado' });
+    } catch (error) {
+        console.error('Error en deleteEnfermero:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ============================================================================
+// RECEPCIONISTAS
+// ============================================================================
+const getRecepcionistas = asyncHandler(async (req, res) => {
+    try {
+        const recepcionistas = await execute(`
+            SELECT 
+                r.id_recepcionista,
+                p.id_persona,
+                p.dni,
+                p.nombre,
+                p.apellido,
+                p.email,
+                p.telefono
+            FROM recepcionistas r
+            JOIN personas p ON r.id_persona = p.id_persona
+            ORDER BY p.apellido, p.nombre
+        `);
+
+        res.json({ success: true, data: recepcionistas });
+    } catch (error) {
+        console.error('Error en getRecepcionistas:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+const createRecepcionista = asyncHandler(async (req, res) => {
+    const { nombre, apellido, dni, fecha_nacimiento, genero, direccion, telefono, email, nombre_usuario, password } = req.body;
+
+    if (!nombre || !apellido || !dni || !nombre_usuario || !password) {
+        res.status(400);
+        throw new Error('Faltan datos requeridos (nombre, apellido, dni, nombre_usuario, password)');
+    }
+
+    try {
+        // Validar que nombre_usuario no exista
+        const existeUsuario = await execute('SELECT id_usuario FROM usuarios WHERE nombre_usuario = ?', [nombre_usuario]);
+        if (existeUsuario.length > 0) {
+            res.status(400);
+            throw new Error('El nombre de usuario ya existe');
+        }
+
+        // Validar que DNI no exista
+        const existeDni = await execute('SELECT id_persona FROM personas WHERE dni = ?', [dni]);
+        if (existeDni.length > 0) {
+            res.status(400);
+            throw new Error('El DNI ya existe');
+        }
+
+        // Usar fecha de nacimiento proporcionada o una por defecto
+        const fechaNacimiento = fecha_nacimiento || '1980-01-01';
+
+        // Crear persona
+        const personaResult = await execute(`
+            INSERT INTO personas (dni, nombre, apellido, fecha_nacimiento, genero, direccion, telefono, email)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [dni, nombre, apellido, fechaNacimiento, genero || null, direccion || null, telefono || null, email || null]);
+
+        const id_persona = personaResult.insertId;
+
+        // Crear recepcionista
+        await execute(`
+            INSERT INTO recepcionistas (id_persona)
+            VALUES (?)
+        `, [id_persona]);
+
+        // Crear usuario para login
+        const salt = await bcrypt.genSalt(10);
+        const passwordEncriptada = await bcrypt.hash(password, salt);
+
+        const id_rol_sistema = 3; // RECEPCIONISTA
+        await execute(`
+            INSERT INTO usuarios (id_persona, nombre_usuario, password, id_rol_sistema, activo)
+            VALUES (?, ?, ?, ?, 1)
+        `, [id_persona, nombre_usuario, passwordEncriptada, id_rol_sistema]);
+
+        res.json({ success: true, message: 'Recepcionista y usuario creados exitosamente' });
+    } catch (error) {
+        console.error('Error en createRecepcionista:', error);
+        res.status(500).json({ success: false, message: error.message || 'Error al crear recepcionista' });
+    }
+});
+
+const updateRecepcionista = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { nombre, apellido, telefono, email } = req.body;
+
+    try {
+        // Obtener id_persona del recepcionista
+        const recepcionista = await execute('SELECT id_persona FROM recepcionistas WHERE id_recepcionista = ?', [id]);
+        if (!recepcionista.length) {
+            res.status(404);
+            throw new Error('Recepcionista no encontrado');
+        }
+
+        const id_persona = recepcionista[0].id_persona;
+
+        // Actualizar persona
+        await execute(`
+            UPDATE personas
+            SET nombre = COALESCE(?, nombre),
+                apellido = COALESCE(?, apellido),
+                telefono = COALESCE(?, telefono),
+                email = COALESCE(?, email)
+            WHERE id_persona = ?
+        `, [nombre, apellido, telefono, email, id_persona]);
+
+        res.json({ success: true, message: 'Recepcionista actualizado' });
+    } catch (error) {
+        console.error('Error en updateRecepcionista:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+const deleteRecepcionista = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const recepcionista = await execute('SELECT id_persona FROM recepcionistas WHERE id_recepcionista = ?', [id]);
+        if (!recepcionista.length) {
+            res.status(404);
+            throw new Error('Recepcionista no encontrado');
+        }
+
+        const id_persona = recepcionista[0].id_persona;
+
+        // Eliminar recepcionista
+        await execute('DELETE FROM recepcionistas WHERE id_recepcionista = ?', [id]);
+
+        // Eliminar persona
+        await execute('DELETE FROM personas WHERE id_persona = ?', [id_persona]);
+
+        res.json({ success: true, message: 'Recepcionista eliminado' });
+    } catch (error) {
+        console.error('Error en deleteRecepcionista:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ===== INFRAESTRUCTURA - HABITACIONES =====
+
+const getHabitaciones = asyncHandler(async (req, res) => {
+    const habitaciones = await execute(`
+        SELECT id_habitacion, numero_habitacion, tipo_habitacion
+        FROM habitaciones
+        ORDER BY numero_habitacion
+    `);
+
+    res.json({
+        success: true,
+        data: habitaciones
+    });
+});
+
+const createHabitacion = asyncHandler(async (req, res) => {
+    const { numero_habitacion, tipo_habitacion } = req.body;
+
+    if (!numero_habitacion || !tipo_habitacion) {
+        res.status(400);
+        throw new Error('Número de habitación y tipo son requeridos');
+    }
+
+    // Verificar que no exista ya
+    const existente = await execute('SELECT id_habitacion FROM habitaciones WHERE numero_habitacion = ?', [numero_habitacion]);
+    if (existente.length > 0) {
+        res.status(400);
+        throw new Error('Este número de habitación ya existe');
+    }
+
+    const resultado = await execute(`
+        INSERT INTO habitaciones (numero_habitacion, tipo_habitacion)
+        VALUES (?, ?)
+    `, [numero_habitacion, tipo_habitacion]);
+
+    res.status(201).json({
+        success: true,
+        message: 'Habitación creada',
+        id_habitacion: resultado.insertId
+    });
+});
+
+const updateHabitacion = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { numero_habitacion, tipo_habitacion } = req.body;
+
+    if (!numero_habitacion || !tipo_habitacion) {
+        res.status(400);
+        throw new Error('Número de habitación y tipo son requeridos');
+    }
+
+    // Verificar que existe
+    const existente = await execute('SELECT id_habitacion FROM habitaciones WHERE id_habitacion = ?', [id]);
+    if (existente.length === 0) {
+        res.status(404);
+        throw new Error('Habitación no encontrada');
+    }
+
+    // Verificar que no exista otro con ese número
+    const duplicado = await execute('SELECT id_habitacion FROM habitaciones WHERE numero_habitacion = ? AND id_habitacion != ?', [numero_habitacion, id]);
+    if (duplicado.length > 0) {
+        res.status(400);
+        throw new Error('Este número de habitación ya existe');
+    }
+
+    await execute(`
+        UPDATE habitaciones
+        SET numero_habitacion = ?, tipo_habitacion = ?
+        WHERE id_habitacion = ?
+    `, [numero_habitacion, tipo_habitacion, id]);
+
+    res.json({
+        success: true,
+        message: 'Habitación actualizada'
+    });
+});
+
+const deleteHabitacion = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const existente = await execute('SELECT id_habitacion FROM habitaciones WHERE id_habitacion = ?', [id]);
+    if (existente.length === 0) {
+        res.status(404);
+        throw new Error('Habitación no encontrada');
+    }
+
+    // Eliminar camas asociadas primero
+    await execute('DELETE FROM camas WHERE id_habitacion = ?', [id]);
+
+    // Eliminar habitación
+    await execute('DELETE FROM habitaciones WHERE id_habitacion = ?', [id]);
+
+    res.json({
+        success: true,
+        message: 'Habitación eliminada'
+    });
+});
+
+// ===== INFRAESTRUCTURA - CAMAS =====
+
+const getCamas = asyncHandler(async (req, res) => {
+    const camas = await execute(`
+        SELECT id_cama, id_habitacion, numero_cama, estado
+        FROM camas
+        ORDER BY id_habitacion, numero_cama
+    `);
+
+    res.json({
+        success: true,
+        data: camas
+    });
+});
+
+const createCama = asyncHandler(async (req, res) => {
+    const { id_habitacion, numero_cama, estado } = req.body;
+
+    if (!id_habitacion || !numero_cama) {
+        res.status(400);
+        throw new Error('Habitación y número de cama son requeridos');
+    }
+
+    // Verificar que la habitación existe
+    const habitacion = await execute('SELECT id_habitacion FROM habitaciones WHERE id_habitacion = ?', [id_habitacion]);
+    if (habitacion.length === 0) {
+        res.status(404);
+        throw new Error('Habitación no encontrada');
+    }
+
+    // Verificar que no exista cama con ese número en esa habitación
+    const existente = await execute('SELECT id_cama FROM camas WHERE id_habitacion = ? AND numero_cama = ?', [id_habitacion, numero_cama]);
+    if (existente.length > 0) {
+        res.status(400);
+        throw new Error('Este número de cama ya existe en esa habitación');
+    }
+
+    const resultado = await execute(`
+        INSERT INTO camas (id_habitacion, numero_cama, estado)
+        VALUES (?, ?, ?)
+    `, [id_habitacion, numero_cama, estado || 'Disponible']);
+
+    res.status(201).json({
+        success: true,
+        message: 'Cama creada',
+        id_cama: resultado.insertId
+    });
+});
+
+const updateCama = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { id_habitacion, numero_cama, estado } = req.body;
+
+    if (!id_habitacion || !numero_cama) {
+        res.status(400);
+        throw new Error('Habitación y número de cama son requeridos');
+    }
+
+    // Verificar que la cama existe
+    const existente = await execute('SELECT id_cama FROM camas WHERE id_cama = ?', [id]);
+    if (existente.length === 0) {
+        res.status(404);
+        throw new Error('Cama no encontrada');
+    }
+
+    // Verificar que la habitación existe
+    const habitacion = await execute('SELECT id_habitacion FROM habitaciones WHERE id_habitacion = ?', [id_habitacion]);
+    if (habitacion.length === 0) {
+        res.status(404);
+        throw new Error('Habitación no encontrada');
+    }
+
+    // Verificar que no exista otro con ese número en esa habitación
+    const duplicado = await execute('SELECT id_cama FROM camas WHERE id_habitacion = ? AND numero_cama = ? AND id_cama != ?', [id_habitacion, numero_cama, id]);
+    if (duplicado.length > 0) {
+        res.status(400);
+        throw new Error('Este número de cama ya existe en esa habitación');
+    }
+
+    await execute(`
+        UPDATE camas
+        SET id_habitacion = ?, numero_cama = ?, estado = ?
+        WHERE id_cama = ?
+    `, [id_habitacion, numero_cama, estado || 'Disponible', id]);
+
+    res.json({
+        success: true,
+        message: 'Cama actualizada'
+    });
+});
+
+const deleteCama = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const existente = await execute('SELECT id_cama FROM camas WHERE id_cama = ?', [id]);
+    if (existente.length === 0) {
+        res.status(404);
+        throw new Error('Cama no encontrada');
+    }
+
+    await execute('DELETE FROM camas WHERE id_cama = ?', [id]);
+
+    res.json({
+        success: true,
+        message: 'Cama eliminada'
+    });
+});
+
+// ===== INFRAESTRUCTURA - QUIRÓFANOS =====
+
+const getQuirofanos = asyncHandler(async (req, res) => {
+    const quirofanos = await execute(`
+        SELECT id_quirofano, nombre, estado
+        FROM quirofanos
+        ORDER BY nombre
+    `);
+
+    res.json({
+        success: true,
+        data: quirofanos
+    });
+});
+
+const createQuirofano = asyncHandler(async (req, res) => {
+    const { nombre, estado } = req.body;
+
+    if (!nombre) {
+        res.status(400);
+        throw new Error('Nombre del quirófano es requerido');
+    }
+
+    // Verificar que no exista ya
+    const existente = await execute('SELECT id_quirofano FROM quirofanos WHERE nombre = ?', [nombre]);
+    if (existente.length > 0) {
+        res.status(400);
+        throw new Error('Este nombre de quirófano ya existe');
+    }
+
+    const resultado = await execute(`
+        INSERT INTO quirofanos (nombre, estado)
+        VALUES (?, ?)
+    `, [nombre, estado || 'Disponible']);
+
+    res.status(201).json({
+        success: true,
+        message: 'Quirófano creado',
+        id_quirofano: resultado.insertId
+    });
+});
+
+const updateQuirofano = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { nombre, estado } = req.body;
+
+    if (!nombre) {
+        res.status(400);
+        throw new Error('Nombre del quirófano es requerido');
+    }
+
+    // Verificar que existe
+    const existente = await execute('SELECT id_quirofano FROM quirofanos WHERE id_quirofano = ?', [id]);
+    if (existente.length === 0) {
+        res.status(404);
+        throw new Error('Quirófano no encontrado');
+    }
+
+    // Verificar que no exista otro con ese nombre
+    const duplicado = await execute('SELECT id_quirofano FROM quirofanos WHERE nombre = ? AND id_quirofano != ?', [nombre, id]);
+    if (duplicado.length > 0) {
+        res.status(400);
+        throw new Error('Este nombre de quirófano ya existe');
+    }
+
+    await execute(`
+        UPDATE quirofanos
+        SET nombre = ?, estado = ?
+        WHERE id_quirofano = ?
+    `, [nombre, estado || 'Disponible', id]);
+
+    res.json({
+        success: true,
+        message: 'Quirófano actualizado'
+    });
+});
+
+const deleteQuirofano = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const existente = await execute('SELECT id_quirofano FROM quirofanos WHERE id_quirofano = ?', [id]);
+    if (existente.length === 0) {
+        res.status(404);
+        throw new Error('Quirófano no encontrado');
+    }
+
+    await execute('DELETE FROM quirofanos WHERE id_quirofano = ?', [id]);
+
+    res.json({
+        success: true,
+        message: 'Quirófano eliminado'
+    });
+});
+
 module.exports = {
     obtenerUsuarios,
     crearUsuario,
@@ -820,4 +1461,29 @@ module.exports = {
     createPaciente,
     updatePaciente,
     deletePaciente,
+    // Enfermeros
+    getEnfermeros,
+    createEnfermero,
+    updateEnfermero,
+    deleteEnfermero,
+    // Recepcionistas
+    getRecepcionistas,
+    createRecepcionista,
+    updateRecepcionista,
+    deleteRecepcionista,
+    // Infraestructura - Habitaciones
+    getHabitaciones,
+    createHabitacion,
+    updateHabitacion,
+    deleteHabitacion,
+    // Infraestructura - Camas
+    getCamas,
+    createCama,
+    updateCama,
+    deleteCama,
+    // Infraestructura - Quirófanos
+    getQuirofanos,
+    createQuirofano,
+    updateQuirofano,
+    deleteQuirofano,
 };

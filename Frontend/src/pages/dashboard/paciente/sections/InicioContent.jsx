@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react"
 import { toast } from 'react-hot-toast'
 import { Calendar, FlaskConical, Pill, FileText } from "lucide-react"
-import { Link } from "react-router-dom"
 import apiClient from '../../../../services/apiClient'
 
-export function InicioContent() {
+export function InicioContent({ setActiveSection }) {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -49,7 +48,7 @@ export function InicioContent() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [setActiveSection]);
 
   const handleCancelarTurno = async (idTurno) => {
     try {
@@ -177,12 +176,12 @@ export function InicioContent() {
           )}
         </div>
 
-        <Link 
-          to="/dashboard/buscar-medicos"
-          className="block w-full mt-6 px-6 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-lg text-center"
+        <button
+          onClick={() => setActiveSection('buscar-medicos')}
+          className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
         >
-          Solicitar Nuevo Turno
-        </Link>
+          + Solicitar Nuevo Turno
+        </button>
       </div>
 
       {/* Últimos Resultados Section */}

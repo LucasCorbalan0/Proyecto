@@ -20,9 +20,9 @@ export default function PacienteDashboard() {
   const renderContent = () => {
     switch (activeSection) {
       case "inicio":
-        return <InicioContent />
+        return <InicioContent setActiveSection={setActiveSection} key={activeSection} />
       case "buscar-medicos":
-        return <BuscarMedicosContent />
+        return <BuscarMedicosContent onTurnoReservado={() => setActiveSection('inicio')} />
       case "historia-clinica":
         return <ConsultasContent />
       case "recetas":
@@ -34,7 +34,7 @@ export default function PacienteDashboard() {
       case "facturacion":
         return <FacturacionContent />
       default:
-        return <InicioContent />
+        return <InicioContent setActiveSection={setActiveSection} key={activeSection} />
     }
   }
 

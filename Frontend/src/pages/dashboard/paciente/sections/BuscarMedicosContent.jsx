@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, XCircle } from 'lucide-react'
 import { api } from '../services/api'
 
-export function BuscarMedicosContent() {
+export function BuscarMedicosContent({ onTurnoReservado }) {
   const [selectedSpecialty, setSelectedSpecialty] = useState("")
   const [especialidades, setEspecialidades] = useState([])
   const [medicos, setMedicos] = useState([])
@@ -101,7 +101,13 @@ export function BuscarMedicosContent() {
         setHorariosDisponibles(horariosDisponibles.filter(slot => 
           !(slot.fecha === fecha && slot.hora_inicio === horaInicio)
         ))
-        setTimeout(() => setSelectedDoctor(null), 2000)
+        // Después de 2 segundos, volver a Inicio y recargar datos
+        setTimeout(() => {
+          setSelectedDoctor(null)
+          if (onTurnoReservado) {
+            onTurnoReservado()
+          }
+        }, 2000)
       }
     } catch (err) {
       setError("Error al reservar el turno")

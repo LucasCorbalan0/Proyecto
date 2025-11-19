@@ -12,10 +12,15 @@ export default function MedicosContent() {
     nombre: '',
     apellido: '',
     dni: '',
+    fecha_nacimiento: '',
+    genero: '',
+    direccion: '',
     telefono: '',
     email: '',
     matricula: '',
-    id_especialidad: ''
+    id_especialidad: '',
+    nombre_usuario: '',
+    password: ''
   })
   const [editingId, setEditingId] = useState(null)
   const [selectedMedico, setSelectedMedico] = useState(null)
@@ -57,7 +62,7 @@ export default function MedicosContent() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!formData.nombre || !formData.apellido || !formData.dni || !formData.matricula || !formData.id_especialidad) {
+    if (!formData.nombre || !formData.apellido || !formData.dni || !formData.matricula || !formData.id_especialidad || !formData.nombre_usuario || !formData.password) {
       toast.error('Complete todos los campos requeridos')
       return
     }
@@ -84,10 +89,15 @@ export default function MedicosContent() {
       nombre: medico.nombre,
       apellido: medico.apellido,
       dni: medico.dni,
+      fecha_nacimiento: medico.fecha_nacimiento || '',
+      genero: medico.genero || '',
+      direccion: medico.direccion || '',
       telefono: medico.telefono || '',
       email: medico.email || '',
       matricula: medico.matricula,
-      id_especialidad: especialidades.find(e => e.nombre === medico.especialidad)?.id_especialidad || ''
+      id_especialidad: especialidades.find(e => e.nombre === medico.especialidad)?.id_especialidad || '',
+      nombre_usuario: '',
+      password: ''
     })
     setEditingId(medico.id_medico)
     setShowForm(true)
@@ -109,10 +119,15 @@ export default function MedicosContent() {
       nombre: '',
       apellido: '',
       dni: '',
+      fecha_nacimiento: '',
+      genero: '',
+      direccion: '',
       telefono: '',
       email: '',
       matricula: '',
-      id_especialidad: ''
+      id_especialidad: '',
+      nombre_usuario: '',
+      password: ''
     })
     setEditingId(null)
   }
@@ -141,6 +156,14 @@ export default function MedicosContent() {
             <input type="text" name="nombre" placeholder="Nombre" value={formData.nombre} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" required />
             <input type="text" name="apellido" placeholder="Apellido" value={formData.apellido} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" required />
             <input type="text" name="dni" placeholder="DNI" value={formData.dni} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" required />
+            <input type="date" name="fecha_nacimiento" value={formData.fecha_nacimiento} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" />
+            <select name="genero" value={formData.genero} onChange={handleInputChange} className="px-4 py-2 border rounded-lg">
+              <option value="">Género</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Femenino">Femenino</option>
+              <option value="Otro">Otro</option>
+            </select>
+            <input type="text" name="direccion" placeholder="Dirección" value={formData.direccion} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" />
             <input type="text" name="matricula" placeholder="Matrícula" value={formData.matricula} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" required />
             <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" />
             <input type="tel" name="telefono" placeholder="Teléfono" value={formData.telefono} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" />
@@ -150,6 +173,8 @@ export default function MedicosContent() {
                 <option key={e.id_especialidad} value={e.id_especialidad}>{e.nombre}</option>
               ))}
             </select>
+            <input type="text" name="nombre_usuario" placeholder="Usuario (para login)" value={formData.nombre_usuario} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" required disabled={editingId} />
+            <input type="password" name="password" placeholder="Contraseña" value={formData.password} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" required disabled={editingId} />
             <button type="submit" className="col-span-1 md:col-span-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
               {editingId ? 'Actualizar' : 'Crear'}
             </button>

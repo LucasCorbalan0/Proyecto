@@ -31,6 +31,8 @@ import {
   EspecialidadesContent,
   MedicosContent,
   PacientesContent,
+  EnfermerosContent,
+  RecepcionistasContent,
   SidebarButton,
 } from "../../../components/admin"
 
@@ -45,6 +47,8 @@ export default function AdminHospitalDashboard() {
       case "infraestructura": return <InfraestructuraContent />
       case "medicos": return <MedicosContent />
       case "pacientes": return <PacientesContent />
+      case "enfermeros": return <EnfermerosContent />
+      case "recepcionistas": return <RecepcionistasContent />
       case "productos": return <ProductosContent />
       case "compras": return <ComprasContent />
       case "prestaciones": return <PrestacionesContent />
@@ -82,6 +86,8 @@ export default function AdminHospitalDashboard() {
           <SidebarButton icon={Users} label="Gestión de Usuarios" section="usuarios" active={activeSection} setActive={setActiveSection} />
           <SidebarButton icon={UserCog} label="Médicos" section="medicos" active={activeSection} setActive={setActiveSection} />
           <SidebarButton icon={User} label="Pacientes" section="pacientes" active={activeSection} setActive={setActiveSection} />
+          <SidebarButton icon={Users} label="Enfermeros" section="enfermeros" active={activeSection} setActive={setActiveSection} />
+          <SidebarButton icon={Users} label="Recepcionistas" section="recepcionistas" active={activeSection} setActive={setActiveSection} />
           <SidebarButton icon={BedDouble} label="Infraestructura" section="infraestructura" active={activeSection} setActive={setActiveSection} />
           <SidebarButton icon={Box} label="Productos & Proveedores" section="productos" active={activeSection} setActive={setActiveSection} />
           <SidebarButton icon={Truck} label="Compras / Stock-Lotes" section="compras" active={activeSection} setActive={setActiveSection} />

@@ -1,221 +1,589 @@
-// src/components/admin/InfraestructuraContent.jsx
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
+import apiClient from '../../services/apiClient'
 import Modal from './Modal'
-import { Plus, Edit, Trash2 } from 'lucide-react'
-import { 
-  getInfraestructura, 
-  createInfraestructura, 
-  updateInfraestructura, 
-  deleteInfraestructura, 
-  occupyCama 
-} from '@/services/infraestructura.service.js' // <--- RUTA CORREGIDA CON ALIAS
 
 export default function InfraestructuraContent() {
-  const [rooms, setRooms] = useState([])
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState({ id: "", tipo: "Simple", camas: 1 }) 
-  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState('habitaciones')
 
-  // Función para cargar los datos desde el backend
-  const loadRooms = useCallback(async () => {
-    setLoading(true)
-    try {
-      const response = await getInfraestructura()
-      
-      console.log("Datos recibidos de la API:", response.data); // DEBUGGING
+  return (
+    <div>
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">Infraestructura Hospitalaria</h1>
 
-      if (Array.isArray(response.data)) {
-        // Mapeo defensivo para asegurar que los números sean correctos
-        const formattedRooms = response.data.map(r => ({
-          ...r,
-          camas: Number(r.camas) || 0,
-          ocupadas: Number(r.ocupadas) || 0,
-        }));
-        setRooms(formattedRooms);
-      } else {
-        console.error("La API no devolvió un array. Tipo de dato:", typeof response.data);
-        setRooms([]);
-      }
-      
-    } catch (error) {
-      console.error("Error al cargar infraestructura:", error.response?.data || error.message)
-      toast.error(error.response?.data?.message || 'Error al cargar infraestructura')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+      <div className="flex gap-4 mb-6 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab('habitaciones')}
+          className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+            activeTab === 'habitaciones'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          Habitaciones
+        </button>
+        <button
+          onClick={() => setActiveTab('camas')}
+          className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+            activeTab === 'camas'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          Camas
+        </button>
+        <button
+          onClick={() => setActiveTab('quirofanos')}
+          className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+            activeTab === 'quirofanos'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          Quirófanos
+        </button>
+      </div>
+
+      {activeTab === 'habitaciones' && <HabitacionesTab />}
+      {activeTab === 'camas' && <CamasTab />}
+      {activeTab === 'quirofanos' && <QuirofanosTab />}
+    </div>
+  )
+}
+
+function HabitacionesTab() {
+  const [habitaciones, setHabitaciones] = useState([])
+  const [dataLoading, setDataLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [formData, setFormData] = useState({
+    numero_habitacion: '',
+    tipo_habitacion: ''
+  })
+  const [editingId, setEditingId] = useState(null)
+  const [selectedHabitacion, setSelectedHabitacion] = useState(null)
 
   useEffect(() => {
-    loadRooms()
-  }, [loadRooms])
+    fetchHabitaciones()
+  }, [])
 
-  useEffect(() => { 
-    if (editing) {
-        setForm({ 
-            id: editing.id_display, 
-            tipo: editing.tipo, 
-            camas: editing.camas 
-        }) 
-    }
-  }, [editing])
-
-  const openCreate = () => { setEditing(null); setForm({ id: "", tipo: "Simple", camas: 1 }); setModalOpen(true) }
-  const openEdit = (r) => { setEditing(r); setModalOpen(true) } 
-
-  // Guardar/Actualizar
-  const save = async () => {
-    if (!form.id) { toast.error('Número/Nombre de unidad requerido'); return }
-    
-    const payload = {
-        id: form.id, 
-        tipo: form.tipo,
-        camas: Number(form.camas),
-    };
-
-    setLoading(true)
+  const fetchHabitaciones = async () => {
     try {
-        if (editing) {
-            await updateInfraestructura(editing.id, payload) 
-            toast.success('Elemento actualizado exitosamente')
-        } else {
-            await createInfraestructura(payload)
-            toast.success('Elemento agregado exitosamente')
-        }
-        
-        loadRooms() 
-        setModalOpen(false)
-        setEditing(null)
+      const response = await apiClient.get('/admin/habitaciones')
+      const data = response.data?.data ?? response.data ?? []
+      setHabitaciones(Array.isArray(data) ? data : [])
     } catch (error) {
-        console.error(error)
-        toast.error(error.response?.data?.message || 'Error al guardar la infraestructura')
+      console.error('Error al cargar habitaciones:', error)
+      toast.error('Error al cargar habitaciones')
+      setHabitaciones([])
     } finally {
-        setLoading(false)
+      setDataLoading(false)
     }
   }
 
-  // Ocupar cama
-  const occupy = async (id_habitacion_bd) => { 
-    if (!confirm('¿Marcar como ocupada la próxima cama disponible en esta unidad?')) return
-    setLoading(true)
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    if (!formData.numero_habitacion || !formData.tipo_habitacion) {
+      toast.error('Complete todos los campos requeridos')
+      return
+    }
+
     try {
-      await occupyCama(id_habitacion_bd) 
-      toast.success("Cama ocupada. Recargando lista...")
-      loadRooms()
+      if (editingId) {
+        await apiClient.put(`/admin/habitaciones/${editingId}`, formData)
+        toast.success('Habitación actualizada')
+      } else {
+        await apiClient.post('/admin/habitaciones', formData)
+        toast.success('Habitación creada')
+      }
+      fetchHabitaciones()
+      setShowForm(false)
+      resetForm()
     } catch (error) {
-        console.error(error)
-        toast.error(error.response?.data?.message || 'Error al ocupar la cama.')
-    } finally {
-      setLoading(false)
+      console.error('Error:', error)
+      toast.error(error.response?.data?.message || 'Error al guardar habitación')
     }
   }
 
-  // Eliminar elemento
-  const remove = async (id_habitacion_bd) => { 
-    if (!confirm('¿Eliminar elemento de infraestructura? Esto eliminará también todas las camas asociadas.')) return
-    setLoading(true)
+  const handleEdit = (habitacion) => {
+    setFormData({
+      numero_habitacion: habitacion.numero_habitacion,
+      tipo_habitacion: habitacion.tipo_habitacion
+    })
+    setEditingId(habitacion.id_habitacion)
+    setShowForm(true)
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('¿Eliminar habitación?')) return
     try {
-      await deleteInfraestructura(id_habitacion_bd)
-      toast.success("Elemento eliminado exitosamente")
-      loadRooms()
+      await apiClient.delete(`/admin/habitaciones/${id}`)
+      toast.success('Habitación eliminada')
+      fetchHabitaciones()
     } catch (error) {
-        console.error(error)
-        toast.error(error.response?.data?.message || 'Error al eliminar el elemento.')
-    } finally {
-      setLoading(false)
+      toast.error('Error al eliminar')
     }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      numero_habitacion: '',
+      tipo_habitacion: ''
+    })
+    setEditingId(null)
   }
 
   return (
     <>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Infraestructura</h1>
-        <div>
-          <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white rounded-lg"><Plus className="w-4 h-4" /> Nuevo</button>
-        </div>
+      <div className="mb-6 flex justify-between items-center">
+        <p className="text-gray-600">Gestiona las habitaciones del hospital</p>
+        <button
+          onClick={() => {
+            resetForm()
+            setShowForm(!showForm)
+          }}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          {showForm ? 'Cancelar' : '+ Nueva Habitación'}
+        </button>
       </div>
 
+      {showForm && (
+        <div className="bg-white p-6 rounded-xl border border-gray-200 mb-6">
+          <h2 className="text-xl font-semibold mb-4">{editingId ? 'Editar Habitación' : 'Crear Habitación'}</h2>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" name="numero_habitacion" placeholder="Número de Habitación" value={formData.numero_habitacion} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" required />
+            <select name="tipo_habitacion" value={formData.tipo_habitacion} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" required>
+              <option value="">Selecciona Tipo</option>
+              <option value="Simple">Simple</option>
+              <option value="Doble">Doble</option>
+              <option value="UCI">UCI</option>
+            </select>
+            <button type="submit" className="col-span-1 md:col-span-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+              {editingId ? 'Actualizar' : 'Crear'}
+            </button>
+          </form>
+        </div>
+      )}
+
       <div className="bg-white p-6 rounded-xl border border-gray-200">
-        <div className="overflow-x-auto">
-          {loading && <p className="p-4 text-center text-blue-600">Cargando datos...</p>}
-          {!loading && rooms.length === 0 && <p className="p-4 text-sm text-gray-500">No hay elementos de infraestructura registrados.</p>}
-          {!loading && rooms.length > 0 && (
+        {dataLoading ? (
+          <p className="text-center py-8 text-gray-500">Cargando habitaciones...</p>
+        ) : habitaciones.length === 0 ? (
+          <p className="text-center py-8 text-gray-500">No hay habitaciones registradas</p>
+        ) : (
+          <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-xs text-left text-gray-500">N°</th>
-                  <th className="px-6 py-3 text-xs text-left text-gray-500">Tipo</th>
-                  <th className="px-6 py-3 text-xs text-left text-gray-500">Camas Totales</th>
-                  <th className="px-6 py-3 text-xs text-left text-gray-500">Ocupadas</th>
-                  <th className="px-6 py-3 text-xs text-left text-gray-500">Disponibles</th>
-                  <th className="px-6 py-3 text-xs text-left text-gray-500">Acciones</th>
+                  <th className="px-6 py-3 text-xs text-gray-500 text-left">Número</th>
+                  <th className="px-6 py-3 text-xs text-gray-500 text-left">Tipo</th>
+                  <th className="px-6 py-3 text-xs text-gray-500 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {rooms.map(r => (
-                  <tr key={r.id}>
-                    <td className="px-6 py-4">{r.id_display}</td> 
-                    <td className="px-6 py-4">{r.tipo}</td>
-                    <td className="px-6 py-4">{r.camas}</td>
-                    <td className="px-6 py-4">{r.ocupadas}</td>
-                    <td className="px-6 py-4 font-semibold text-green-700">{r.camas - r.ocupadas}</td>
-                    <td className="px-6 py-4 flex gap-2">
-                      <button onClick={() => openEdit(r)} className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-sm"><Edit className="w-4 h-4" /></button>
-                      <button 
-                        onClick={() => occupy(r.id)} 
-                        disabled={r.ocupadas >= r.camas || r.camas === 0}
-                        className={`px-2 py-1 rounded text-sm ${r.ocupadas >= r.camas || r.camas === 0 ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}
-                      >
-                        Ocupar
-                      </button>
-                      <button onClick={() => remove(r.id)} className="px-2 py-1 bg-red-50 text-red-700 rounded text-sm"><Trash2 className="w-4 h-4" /></button>
+                {habitaciones.map(habitacion => (
+                  <tr key={habitacion.id_habitacion} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">{habitacion.numero_habitacion}</td>
+                    <td className="px-6 py-4">{habitacion.tipo_habitacion}</td>
+                    <td className="px-6 py-4 flex gap-2 justify-center">
+                      <button onClick={() => setSelectedHabitacion(habitacion)} className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200">Ver</button>
+                      <button onClick={() => handleEdit(habitacion)} className="px-3 py-1 text-sm bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200">Editar</button>
+                      <button onClick={() => handleDelete(habitacion.id_habitacion)} className="px-3 py-1 text-sm bg-red-100 text-red-600 rounded-lg hover:bg-red-200">Eliminar</button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {modalOpen && (
-        <Modal onClose={() => { if (!loading) { setModalOpen(false); setEditing(null); setForm({ id: "", tipo: "Simple", camas: 1 }); } }}>
-          <h3 className="text-xl font-semibold mb-2">{editing ? 'Editar elemento' : 'Nuevo elemento'}</h3>
-          <div className="space-y-3">
-            <label className="text-sm text-gray-500">Número/Nombre (Ej: 101, Quirofano C)</label>
-            <input 
-              value={form.id} 
-              onChange={e => setForm({ ...form, id: e.target.value })} 
-              className="w-full rounded-lg border p-2" 
-              disabled={editing} 
-            />
-            <label className="text-sm text-gray-500">Tipo</label>
-            <select 
-              value={form.tipo} 
-              onChange={e => setForm({ ...form, tipo: e.target.value })} 
-              className="w-full rounded-lg border p-2"
-            >
-              <option value="Simple">Habitación Simple</option>
-              <option value="Doble">Habitación Doble</option>
-              <option value="UCI">UCI</option>
-              <option value="Quirófano">Quirófano</option>
+      {selectedHabitacion && <Modal title={`Habitación ${selectedHabitacion.numero_habitacion}`} onClose={() => setSelectedHabitacion(null)}>
+        <div className="space-y-2">
+          <p><strong>Número:</strong> {selectedHabitacion.numero_habitacion}</p>
+          <p><strong>Tipo:</strong> {selectedHabitacion.tipo_habitacion}</p>
+        </div>
+      </Modal>}
+    </>
+  )
+}
+
+function CamasTab() {
+  const [camas, setCamas] = useState([])
+  const [habitaciones, setHabitaciones] = useState([])
+  const [dataLoading, setDataLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [formData, setFormData] = useState({
+    id_habitacion: '',
+    numero_cama: '',
+    estado: 'Disponible'
+  })
+  const [editingId, setEditingId] = useState(null)
+  const [selectedCama, setSelectedCama] = useState(null)
+
+  useEffect(() => {
+    fetchCamas()
+    fetchHabitaciones()
+  }, [])
+
+  const fetchCamas = async () => {
+    try {
+      const response = await apiClient.get('/admin/camas')
+      const data = response.data?.data ?? response.data ?? []
+      setCamas(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Error al cargar camas:', error)
+      toast.error('Error al cargar camas')
+      setCamas([])
+    } finally {
+      setDataLoading(false)
+    }
+  }
+
+  const fetchHabitaciones = async () => {
+    try {
+      const response = await apiClient.get('/admin/habitaciones')
+      const data = response.data?.data ?? response.data ?? []
+      setHabitaciones(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Error al cargar habitaciones:', error)
+    }
+  }
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    if (!formData.id_habitacion || !formData.numero_cama) {
+      toast.error('Complete todos los campos requeridos')
+      return
+    }
+
+    try {
+      if (editingId) {
+        await apiClient.put(`/admin/camas/${editingId}`, formData)
+        toast.success('Cama actualizada')
+      } else {
+        await apiClient.post('/admin/camas', formData)
+        toast.success('Cama creada')
+      }
+      fetchCamas()
+      setShowForm(false)
+      resetForm()
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error(error.response?.data?.message || 'Error al guardar cama')
+    }
+  }
+
+  const handleEdit = (cama) => {
+    setFormData({
+      id_habitacion: cama.id_habitacion,
+      numero_cama: cama.numero_cama,
+      estado: cama.estado
+    })
+    setEditingId(cama.id_cama)
+    setShowForm(true)
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('¿Eliminar cama?')) return
+    try {
+      await apiClient.delete(`/admin/camas/${id}`)
+      toast.success('Cama eliminada')
+      fetchCamas()
+    } catch (error) {
+      toast.error('Error al eliminar')
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      id_habitacion: '',
+      numero_cama: '',
+      estado: 'Disponible'
+    })
+    setEditingId(null)
+  }
+
+  const getHabitacionNumero = (id) => {
+    const hab = habitaciones.find(h => h.id_habitacion === id)
+    return hab ? hab.numero_habitacion : 'N/A'
+  }
+
+  return (
+    <>
+      <div className="mb-6 flex justify-between items-center">
+        <p className="text-gray-600">Gestiona las camas de las habitaciones</p>
+        <button
+          onClick={() => {
+            resetForm()
+            setShowForm(!showForm)
+          }}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          {showForm ? 'Cancelar' : '+ Nueva Cama'}
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-white p-6 rounded-xl border border-gray-200 mb-6">
+          <h2 className="text-xl font-semibold mb-4">{editingId ? 'Editar Cama' : 'Crear Cama'}</h2>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <select name="id_habitacion" value={formData.id_habitacion} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" required>
+              <option value="">Selecciona Habitación</option>
+              {habitaciones.map(hab => (
+                <option key={hab.id_habitacion} value={hab.id_habitacion}>
+                  {hab.numero_habitacion} ({hab.tipo_habitacion})
+                </option>
+              ))}
             </select>
-            <label className="text-sm text-gray-500">Camas (0 si no aplica)</label>
-            <input 
-              type="number" 
-              value={form.camas} 
-              onChange={e => setForm({ ...form, camas: e.target.value })} 
-              className="w-full rounded-lg border p-2" 
-              min={0}
-            />
-            <div className="flex gap-2 mt-2">
-              <button onClick={save} disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded-lg">{loading ? 'Guardando...' : 'Guardar'}</button>
-              <button onClick={() => { if (!loading) { setModalOpen(false); setEditing(null); setForm({ id: "", tipo: "Simple", camas: 1 }); } }} disabled={loading} className="px-4 py-2 bg-gray-100 rounded-lg">Cancelar</button>
-            </div>
-          </div>
-        </Modal>
+            <input type="text" name="numero_cama" placeholder="Número de Cama (ej: A, B)" value={formData.numero_cama} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" required />
+            <select name="estado" value={formData.estado} onChange={handleInputChange} className="px-4 py-2 border rounded-lg">
+              <option value="Disponible">Disponible</option>
+              <option value="Ocupada">Ocupada</option>
+              <option value="En Mantenimiento">En Mantenimiento</option>
+              <option value="Limpieza">Limpieza</option>
+            </select>
+            <button type="submit" className="col-span-1 md:col-span-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+              {editingId ? 'Actualizar' : 'Crear'}
+            </button>
+          </form>
+        </div>
       )}
+
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        {dataLoading ? (
+          <p className="text-center py-8 text-gray-500">Cargando camas...</p>
+        ) : camas.length === 0 ? (
+          <p className="text-center py-8 text-gray-500">No hay camas registradas</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-6 py-3 text-xs text-gray-500 text-left">Habitación</th>
+                  <th className="px-6 py-3 text-xs text-gray-500 text-left">Cama</th>
+                  <th className="px-6 py-3 text-xs text-gray-500 text-left">Estado</th>
+                  <th className="px-6 py-3 text-xs text-gray-500 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {camas.map(cama => (
+                  <tr key={cama.id_cama} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">{getHabitacionNumero(cama.id_habitacion)}</td>
+                    <td className="px-6 py-4">{cama.numero_cama}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                        cama.estado === 'Disponible' ? 'bg-green-100 text-green-800' :
+                        cama.estado === 'Ocupada' ? 'bg-red-100 text-red-800' :
+                        cama.estado === 'Limpieza' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {cama.estado}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 flex gap-2 justify-center">
+                      <button onClick={() => setSelectedCama(cama)} className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200">Ver</button>
+                      <button onClick={() => handleEdit(cama)} className="px-3 py-1 text-sm bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200">Editar</button>
+                      <button onClick={() => handleDelete(cama.id_cama)} className="px-3 py-1 text-sm bg-red-100 text-red-600 rounded-lg hover:bg-red-200">Eliminar</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {selectedCama && <Modal title={`Cama ${selectedCama.numero_cama}`} onClose={() => setSelectedCama(null)}>
+        <div className="space-y-2">
+          <p><strong>Habitación:</strong> {getHabitacionNumero(selectedCama.id_habitacion)}</p>
+          <p><strong>Cama:</strong> {selectedCama.numero_cama}</p>
+          <p><strong>Estado:</strong> {selectedCama.estado}</p>
+        </div>
+      </Modal>}
+    </>
+  )
+}
+
+function QuirofanosTab() {
+  const [quirofanos, setQuirofanos] = useState([])
+  const [dataLoading, setDataLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [formData, setFormData] = useState({
+    nombre: '',
+    estado: 'Disponible'
+  })
+  const [editingId, setEditingId] = useState(null)
+  const [selectedQuirofano, setSelectedQuirofano] = useState(null)
+
+  useEffect(() => {
+    fetchQuirofanos()
+  }, [])
+
+  const fetchQuirofanos = async () => {
+    try {
+      const response = await apiClient.get('/admin/quirofanos')
+      const data = response.data?.data ?? response.data ?? []
+      setQuirofanos(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Error al cargar quirófanos:', error)
+      toast.error('Error al cargar quirófanos')
+      setQuirofanos([])
+    } finally {
+      setDataLoading(false)
+    }
+  }
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    if (!formData.nombre) {
+      toast.error('Complete todos los campos requeridos')
+      return
+    }
+
+    try {
+      if (editingId) {
+        await apiClient.put(`/admin/quirofanos/${editingId}`, formData)
+        toast.success('Quirófano actualizado')
+      } else {
+        await apiClient.post('/admin/quirofanos', formData)
+        toast.success('Quirófano creado')
+      }
+      fetchQuirofanos()
+      setShowForm(false)
+      resetForm()
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error(error.response?.data?.message || 'Error al guardar quirófano')
+    }
+  }
+
+  const handleEdit = (quirofano) => {
+    setFormData({
+      nombre: quirofano.nombre,
+      estado: quirofano.estado
+    })
+    setEditingId(quirofano.id_quirofano)
+    setShowForm(true)
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('¿Eliminar quirófano?')) return
+    try {
+      await apiClient.delete(`/admin/quirofanos/${id}`)
+      toast.success('Quirófano eliminado')
+      fetchQuirofanos()
+    } catch (error) {
+      toast.error('Error al eliminar')
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      nombre: '',
+      estado: 'Disponible'
+    })
+    setEditingId(null)
+  }
+
+  return (
+    <>
+      <div className="mb-6 flex justify-between items-center">
+        <p className="text-gray-600">Gestiona los quirófanos del hospital</p>
+        <button
+          onClick={() => {
+            resetForm()
+            setShowForm(!showForm)
+          }}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          {showForm ? 'Cancelar' : '+ Nuevo Quirófano'}
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-white p-6 rounded-xl border border-gray-200 mb-6">
+          <h2 className="text-xl font-semibold mb-4">{editingId ? 'Editar Quirófano' : 'Crear Quirófano'}</h2>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" name="nombre" placeholder="Nombre del Quirófano (ej: Quirófano 1)" value={formData.nombre} onChange={handleInputChange} className="px-4 py-2 border rounded-lg" required />
+            <select name="estado" value={formData.estado} onChange={handleInputChange} className="px-4 py-2 border rounded-lg">
+              <option value="Disponible">Disponible</option>
+              <option value="Ocupado">Ocupado</option>
+              <option value="En Mantenimiento">En Mantenimiento</option>
+              <option value="Limpieza">Limpieza</option>
+            </select>
+            <button type="submit" className="col-span-1 md:col-span-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+              {editingId ? 'Actualizar' : 'Crear'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        {dataLoading ? (
+          <p className="text-center py-8 text-gray-500">Cargando quirófanos...</p>
+        ) : quirofanos.length === 0 ? (
+          <p className="text-center py-8 text-gray-500">No hay quirófanos registrados</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-6 py-3 text-xs text-gray-500 text-left">Nombre</th>
+                  <th className="px-6 py-3 text-xs text-gray-500 text-left">Estado</th>
+                  <th className="px-6 py-3 text-xs text-gray-500 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {quirofanos.map(quirofano => (
+                  <tr key={quirofano.id_quirofano} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">{quirofano.nombre}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                        quirofano.estado === 'Disponible' ? 'bg-green-100 text-green-800' :
+                        quirofano.estado === 'Ocupado' ? 'bg-red-100 text-red-800' :
+                        quirofano.estado === 'Limpieza' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {quirofano.estado}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 flex gap-2 justify-center">
+                      <button onClick={() => setSelectedQuirofano(quirofano)} className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200">Ver</button>
+                      <button onClick={() => handleEdit(quirofano)} className="px-3 py-1 text-sm bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200">Editar</button>
+                      <button onClick={() => handleDelete(quirofano.id_quirofano)} className="px-3 py-1 text-sm bg-red-100 text-red-600 rounded-lg hover:bg-red-200">Eliminar</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {selectedQuirofano && <Modal title={`${selectedQuirofano.nombre}`} onClose={() => setSelectedQuirofano(null)}>
+        <div className="space-y-2">
+          <p><strong>Nombre:</strong> {selectedQuirofano.nombre}</p>
+          <p><strong>Estado:</strong> {selectedQuirofano.estado}</p>
+        </div>
+      </Modal>}
     </>
   )
 }
