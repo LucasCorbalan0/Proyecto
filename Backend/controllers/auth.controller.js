@@ -186,25 +186,16 @@ const registrarUsuario = asyncHandler(async (req, res) => {
       [resultadoPersona.insertId]
     );
 
-    console.log("Resultado Paciente Insert:", resultadoPaciente);
-
     // Crear historia clínica automáticamente
     if (resultadoPaciente && resultadoPaciente.insertId) {
-      console.log(
-        "Creando historia clínica para id_paciente:",
-        resultadoPaciente.insertId
-      );
       try {
         await execute(
           `INSERT INTO historiasclinicas (id_paciente, fecha_creacion) VALUES (?, CURDATE())`,
           [resultadoPaciente.insertId]
         );
-        console.log("Historia clínica creada exitosamente");
       } catch (histErr) {
         console.error("Error creando historia clínica:", histErr);
       }
-    } else {
-      console.log("No se pudo obtener insertId de paciente");
     }
 
     res.status(201).json({

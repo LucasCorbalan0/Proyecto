@@ -1,146 +1,454 @@
-import { useEffect, useState } from 'react'
-import { toast } from 'react-hot-toast'
-import Modal from './Modal'
-import { Download, Plus, Edit } from 'lucide-react'
-import apiClient from '../../services/apiClient'
+import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+import { Download, Plus, Edit2, Trash2, X, Loader } from "lucide-react";
+import apiClient from "../../services/apiClient";
 
 export default function ProductosContent() {
-  const [items, setItems] = useState([])
-  const [filter, setFilter] = useState("")
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState({ nombre: "", descripcion: "", tipo_producto: "Medicamento" })
-  const [loading, setLoading] = useState(false)
-  const [dataLoading, setDataLoading] = useState(true)
+  const [productos, setProductos] = useState([]);
+  const [filteredProductos, setFilteredProductos] = useState([]);
+  const [filter, setFilter] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [editingProducto, setEditingProducto] = useState(null);
+  const [deletingProducto, setDeletingProducto] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
 
+  const [form, setForm] = useState({
+    nombre: "",
+    descripcion: "",
+    tipo_producto: "Medicamento",
+  });
+
+  // Cargar productos al montar
   useEffect(() => {
-    const fetchProductos = async () => {
-      setDataLoading(true)
-      try {
-        const response = await apiClient.get('/admin/productos')
-        const data = response.data?.data ?? response.data ?? []
-        const normalized = (Array.isArray(data) ? data : []).map(p => ({
-          id_producto: p.id_producto ?? p.id,
-          nombre: p.nombre ?? '',
-          descripcion: p.descripcion ?? '',
-          tipo_producto: p.tipo_producto ?? 'Medicamento'
-        }))
-        setItems(normalized)
-      } catch (error) {
-        console.error('Error al cargar productos:', error)
-        toast.error('Error al cargar productos')
-        setItems([])
-      } finally {
-        setDataLoading(false)
-      }
+    loadProductos();
+  }, []);
+
+  // Actualizar form cuando se edita
+  useEffect(() => {
+    if (editingProducto) {
+      setForm({
+        nombre: editingProducto.nombre || "",
+        descripcion: editingProducto.descripcion || "",
+        tipo_producto: editingProducto.tipo_producto || "Medicamento",
+      });
     }
-    fetchProductos()
-  }, [])
+  }, [editingProducto]);
 
-  useEffect(() => { if (editing) setForm({ nombre: editing.nombre, descripcion: editing.descripcion, tipo_producto: editing.tipo_producto }) }, [editing])
+  // Filtrar productos
+  useEffect(() => {
+    const filtered = productos.filter(
+      (p) =>
+        p.nombre.toLowerCase().includes(filter.toLowerCase()) ||
+        (p.descripcion &&
+          p.descripcion.toLowerCase().includes(filter.toLowerCase()))
+    );
+    setFilteredProductos(filtered);
+  }, [filter, productos]);
 
-  const openCreate = () => { setEditing(null); setForm({ nombre: "", descripcion: "", tipo_producto: "Medicamento" }); setModalOpen(true) }
-  const openEdit = (it) => { setEditing(it); setModalOpen(true) }
-
-  const save = async () => {
-    if (!form.nombre) { toast.error('Nombre requerido'); return }
-    setLoading(true)
+  const loadProductos = async () => {
+    setDataLoading(true);
     try {
-      if (editing) {
-        await apiClient.put(`/admin/productos/${editing.id_producto}`, form)
-        setItems(items.map(i => i.id_producto === editing.id_producto ? { ...i, ...form } : i))
-        toast.success('Producto actualizado')
-      } else {
-        const response = await apiClient.post('/admin/productos', form)
-        const newId = response.data?.id_producto || Date.now()
-        setItems([{ id_producto: newId, ...form }, ...items])
-        toast.success('Producto creado')
-      }
-      setModalOpen(false)
-      setEditing(null)
+      const response = await apiClient.get("/admin/productos");
+      const data = response.data?.data || response.data || [];
+      setProductos(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error al guardar producto:', error)
-      toast.error('Error al guardar producto')
+      console.error("Error al cargar productos:", error);
+      toast.error("Error al cargar productos");
+      setProductos([]);
     } finally {
-      setLoading(false)
+      setDataLoading(false);
     }
-  }
+  };
+
+  const openCreate = () => {
+    setEditingProducto(null);
+    setForm({
+      nombre: "",
+      descripcion: "",
+      tipo_producto: "Medicamento",
+    });
+    setModalOpen(true);
+  };
+
+  const openEdit = (producto) => {
+    setEditingProducto(producto);
+    setModalOpen(true);
+  };
+
+  const openDelete = (producto) => {
+    setDeletingProducto(producto);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const saveProducto = async () => {
+    if (!form.nombre.trim()) {
+      toast.error("El nombre del producto es requerido");
+      return;
+    }
+
+    if (!form.tipo_producto) {
+      toast.error("El tipo de producto es requerido");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (editingProducto) {
+        // Actualizar
+        await apiClient.put(
+          `/admin/productos/${editingProducto.id_producto}`,
+          form
+        );
+        setProductos(
+          productos.map((p) =>
+            p.id_producto === editingProducto.id_producto
+              ? { ...p, ...form }
+              : p
+          )
+        );
+        toast.success("Producto actualizado correctamente");
+      } else {
+        // Crear
+        const response = await apiClient.post("/admin/productos", form);
+        const newProducto = {
+          id_producto: response.data?.id_producto || Date.now(),
+          ...form,
+        };
+        setProductos([newProducto, ...productos]);
+        toast.success("Producto creado correctamente");
+      }
+      setModalOpen(false);
+      setEditingProducto(null);
+      setForm({
+        nombre: "",
+        descripcion: "",
+        tipo_producto: "Medicamento",
+      });
+    } catch (error) {
+      console.error("Error al guardar producto:", error);
+      toast.error(error.response?.data?.message || "Error al guardar producto");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteProducto = async () => {
+    if (!deletingProducto) return;
+
+    setLoading(true);
+    try {
+      await apiClient.delete(
+        `/admin/productos/${deletingProducto.id_producto}`
+      );
+      setProductos(
+        productos.filter((p) => p.id_producto !== deletingProducto.id_producto)
+      );
+      toast.success("Producto eliminado correctamente");
+      setDeleteConfirmOpen(false);
+      setDeletingProducto(null);
+    } catch (error) {
+      console.error("Error al eliminar producto:", error);
+      toast.error("Error al eliminar producto");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const downloadCSV = () => {
-    const csv = ["Nombre,Descripción,Tipo", ...items.map(i => `${i.nombre},"${i.descripcion}",${i.tipo_producto}`)].join("\n")
-    const blob = new Blob([csv], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = 'productos.csv'; a.click(); a.remove()
-    toast.success("CSV descargado")
-  }
+    const headers = ["Nombre", "Descripción", "Tipo de Producto"];
+    const rows = productos.map((p) => [
+      p.nombre,
+      p.descripcion || "",
+      p.tipo_producto,
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `productos_${new Date().getTime()}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    toast.success("CSV descargado correctamente");
+  };
 
   return (
     <>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Productos y Proveedores</h1>
-        <div className="flex gap-2">
-          <button onClick={downloadCSV} className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2"><Download className="w-4 h-4" /> Exportar CSV</button>
-          <button onClick={openCreate} className="px-4 py-2 bg-green-600 text-white rounded-lg"><Plus className="w-4 h-4" /> Nuevo</button>
-        </div>
-      </div>
-
-      <div className="bg-white p-6 rounded-xl border border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <input placeholder="Buscar producto" value={filter} onChange={e => setFilter(e.target.value)} className="rounded-lg border p-2 w-1/3" />
-        </div>
-
-        {dataLoading ? (
-          <div className="text-center py-8"><p className="text-gray-500">Cargando productos...</p></div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-6 py-3 text-xs text-gray-500">Producto</th>
-                  <th className="px-6 py-3 text-xs text-gray-500">Descripción</th>
-                  <th className="px-6 py-3 text-xs text-gray-500">Tipo</th>
-                  <th className="px-6 py-3 text-xs text-gray-500">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {items.filter(i => i.nombre.toLowerCase().includes(filter.toLowerCase())).map(i => (
-                  <tr key={i.id_producto}>
-                    <td className="px-6 py-4">{i.nombre}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{i.descripcion}</td>
-                    <td className="px-6 py-4 text-sm">{i.tipo_producto}</td>
-                    <td className="px-6 py-4 flex gap-2">
-                      <button onClick={() => openEdit(i)} className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-sm"><Edit className="w-4 h-4" /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {items.length === 0 && <p className="p-4 text-sm text-gray-500">No hay productos.</p>}
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Gestión de Productos
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Administra el catálogo de productos del hospital
+            </p>
           </div>
-        )}
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            Nuevo Producto
+          </button>
+        </div>
+
+        {/* Búsqueda */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <input
+            type="text"
+            placeholder="Buscar por nombre o descripción..."
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Tabla de productos */}
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          {dataLoading ? (
+            <div className="flex items-center justify-center h-48">
+              <div className="flex flex-col items-center gap-3">
+                <Loader className="w-6 h-6 animate-spin text-blue-600" />
+                <p className="text-gray-600">Cargando productos...</p>
+              </div>
+            </div>
+          ) : filteredProductos.length === 0 ? (
+            <div className="flex items-center justify-center h-48">
+              <div className="text-center">
+                <p className="text-gray-600 mb-4">
+                  {filter
+                    ? "No se encontraron productos"
+                    : "No hay productos registrados"}
+                </p>
+                <button
+                  onClick={openCreate}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Crear primer producto
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">
+                      Nombre
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">
+                      Descripción
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">
+                      Tipo
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredProductos.map((producto) => (
+                    <tr
+                      key={producto.id_producto}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4 font-medium text-gray-900">
+                        {producto.nombre}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
+                        {producto.descripcion || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                          {producto.tipo_producto}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 flex gap-2">
+                        <button
+                          onClick={() => openEdit(producto)}
+                          className="p-2 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors"
+                          title="Editar"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => openDelete(producto)}
+                          className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Footer con contador */}
+          {!dataLoading && productos.length > 0 && (
+            <div className="bg-gray-50 border-t border-gray-200 px-6 py-3 flex justify-between items-center">
+              <span className="text-sm text-gray-600">
+                Mostrando <strong>{filteredProductos.length}</strong> de{" "}
+                <strong>{productos.length}</strong> productos
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* Modal de crear/editar */}
       {modalOpen && (
-        <Modal onClose={() => setModalOpen(false)}>
-          <h3 className="text-xl font-semibold mb-2">{editing ? 'Editar Producto' : 'Nuevo Producto'}</h3>
-          <div className="space-y-3">
-            <label className="text-sm text-gray-500">Nombre</label>
-            <input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} className="w-full rounded-lg border p-2" />
-            <label className="text-sm text-gray-500">Descripción</label>
-            <textarea value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} className="w-full rounded-lg border p-2" rows="3" />
-            <label className="text-sm text-gray-500">Tipo</label>
-            <select value={form.tipo_producto} onChange={e => setForm({ ...form, tipo_producto: e.target.value })} className="w-full rounded-lg border p-2">
-              <option>Medicamento</option>
-              <option>Insumo</option>
-              <option>Material Quirurgico</option>
-            </select>
-            <div className="flex gap-2 mt-2">
-              <button onClick={save} disabled={loading} className="px-4 py-2 bg-green-600 text-white rounded-lg">{loading ? 'Guardando...' : 'Guardar'}</button>
-              <button onClick={() => setModalOpen(false)} disabled={loading} className="px-4 py-2 bg-gray-100 rounded-lg">Cancelar</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold">
+                  {editingProducto ? "Editar Producto" : "Nuevo Producto"}
+                </h3>
+                <p className="text-blue-100 text-sm">
+                  {editingProducto
+                    ? "Actualiza la información del producto"
+                    : "Crea un nuevo producto en el catálogo"}
+                </p>
+              </div>
+              <button
+                onClick={() => setModalOpen(false)}
+                className="p-1 hover:bg-blue-600 rounded-lg transition"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="p-6 space-y-4">
+              {/* Nombre */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Nombre *
+                </label>
+                <input
+                  type="text"
+                  name="nombre"
+                  value={form.nombre}
+                  onChange={handleInputChange}
+                  placeholder="Ej: Paracetamol 500mg"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Descripción */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Descripción
+                </label>
+                <textarea
+                  name="descripcion"
+                  value={form.descripcion}
+                  onChange={handleInputChange}
+                  placeholder="Descripción detallada del producto..."
+                  rows="3"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+
+              {/* Tipo */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Tipo de Producto *
+                </label>
+                <select
+                  name="tipo_producto"
+                  value={form.tipo_producto}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Medicamento">Medicamento</option>
+                  <option value="Insumo">Insumo</option>
+                  <option value="Material Quirurgico">
+                    Material Quirúrgico
+                  </option>
+                </select>
+              </div>
+
+              {/* Botones */}
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => setModalOpen(false)}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveProducto}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  {loading && <Loader className="w-4 h-4 animate-spin" />}
+                  {loading ? "Guardando..." : "Guardar"}
+                </button>
+              </div>
             </div>
           </div>
-        </Modal>
+        </div>
+      )}
+
+      {/* Modal de confirmación de eliminación */}
+      {deleteConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full">
+            <div className="bg-red-50 border-b border-red-200 px-6 py-4">
+              <h3 className="text-lg font-bold text-red-900">
+                Eliminar Producto
+              </h3>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-gray-700">
+                ¿Estás seguro de que deseas eliminar{" "}
+                <strong>{deletingProducto?.nombre}</strong>?
+              </p>
+              <p className="text-sm text-gray-600">
+                Esta acción no se puede deshacer.
+              </p>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setDeleteConfirmOpen(false)}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={deleteProducto}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  {loading && <Loader className="w-4 h-4 animate-spin" />}
+                  {loading ? "Eliminando..." : "Eliminar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
-  )
+  );
 }

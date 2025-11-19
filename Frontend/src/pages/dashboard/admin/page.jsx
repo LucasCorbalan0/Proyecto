@@ -1,6 +1,6 @@
-import { useState } from "react"
-import { Toaster } from "react-hot-toast"
-import { useAuth } from "../../../hooks/useAuth"
+import { useState } from "react";
+import { Toaster } from "react-hot-toast";
+import { useAuth } from "../../../hooks/useAuth";
 import {
   Home,
   Users,
@@ -17,13 +17,14 @@ import {
   Bell,
   RefreshCw,
   LogOut,
-} from "lucide-react"
+} from "lucide-react";
 import {
   InicioContent,
   UsuariosContent,
   InfraestructuraContent,
   ProductosContent,
   ComprasContent,
+  StockLotesContent,
   PrestacionesContent,
   FacturacionContent,
   ReportesContent,
@@ -34,37 +35,54 @@ import {
   EnfermerosContent,
   RecepcionistasContent,
   SidebarButton,
-} from "../../../components/admin"
+} from "../../../components/admin";
 
 export default function AdminHospitalDashboard() {
-  const { user, logout } = useAuth()
-  const [activeSection, setActiveSection] = useState("inicio")
+  const { user, logout } = useAuth();
+  const [activeSection, setActiveSection] = useState("inicio");
 
   const renderContent = () => {
     switch (activeSection) {
-      case "inicio": return <InicioContent setActive={setActiveSection} />
-      case "usuarios": return <UsuariosContent />
-      case "infraestructura": return <InfraestructuraContent />
-      case "medicos": return <MedicosContent />
-      case "pacientes": return <PacientesContent />
-      case "enfermeros": return <EnfermerosContent />
-      case "recepcionistas": return <RecepcionistasContent />
-      case "productos": return <ProductosContent />
-      case "compras": return <ComprasContent />
-      case "prestaciones": return <PrestacionesContent />
-      case "facturacion": return <FacturacionContent />
-      case "reportes": return <ReportesContent />
-      case "auditoria": return <AuditoriaContent />
-      case "especialidades": return <EspecialidadesContent />
-      default: return <InicioContent setActive={setActiveSection} />
+      case "inicio":
+        return <InicioContent setActive={setActiveSection} />;
+      case "usuarios":
+        return <UsuariosContent />;
+      case "infraestructura":
+        return <InfraestructuraContent />;
+      case "medicos":
+        return <MedicosContent />;
+      case "pacientes":
+        return <PacientesContent />;
+      case "enfermeros":
+        return <EnfermerosContent />;
+      case "recepcionistas":
+        return <RecepcionistasContent />;
+      case "productos":
+        return <ProductosContent />;
+      case "stock-lotes":
+        return <StockLotesContent />;
+      case "compras":
+        return <ComprasContent />;
+      case "prestaciones":
+        return <PrestacionesContent />;
+      case "facturacion":
+        return <FacturacionContent />;
+      case "reportes":
+        return <ReportesContent />;
+      case "auditoria":
+        return <AuditoriaContent />;
+      case "especialidades":
+        return <EspecialidadesContent />;
+      default:
+        return <InicioContent setActive={setActiveSection} />;
     }
-  }
+  };
 
   const handleAdminLogout = () => {
-    logout()
-  }
+    logout();
+  };
 
-  const adminName = user?.nombre || 'Administrador'
+  const adminName = user?.nombre || "Administrador";
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -77,25 +95,111 @@ export default function AdminHospitalDashboard() {
             <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-semibold">
               AH
             </div>
-            <h2 className="text-lg font-semibold text-gray-900">AdminHospital</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              AdminHospital
+            </h2>
           </div>
         </div>
 
         <nav className="flex-1 p-4">
-          <SidebarButton icon={Home} label="Inicio" section="inicio" active={activeSection} setActive={setActiveSection} />
-          <SidebarButton icon={Users} label="Gestión de Usuarios" section="usuarios" active={activeSection} setActive={setActiveSection} />
-          <SidebarButton icon={UserCog} label="Médicos" section="medicos" active={activeSection} setActive={setActiveSection} />
-          <SidebarButton icon={User} label="Pacientes" section="pacientes" active={activeSection} setActive={setActiveSection} />
-          <SidebarButton icon={Users} label="Enfermeros" section="enfermeros" active={activeSection} setActive={setActiveSection} />
-          <SidebarButton icon={Users} label="Recepcionistas" section="recepcionistas" active={activeSection} setActive={setActiveSection} />
-          <SidebarButton icon={BedDouble} label="Infraestructura" section="infraestructura" active={activeSection} setActive={setActiveSection} />
-          <SidebarButton icon={Box} label="Productos & Proveedores" section="productos" active={activeSection} setActive={setActiveSection} />
-          <SidebarButton icon={Truck} label="Compras / Stock-Lotes" section="compras" active={activeSection} setActive={setActiveSection} />
-          <SidebarButton icon={Archive} label="Prestaciones y Precios" section="prestaciones" active={activeSection} setActive={setActiveSection} />
-          <SidebarButton icon={Receipt} label="Facturación" section="facturacion" active={activeSection} setActive={setActiveSection} />
-          <SidebarButton icon={BarChart2} label="Reportes" section="reportes" active={activeSection} setActive={setActiveSection} />
-          <SidebarButton icon={ClipboardList} label="Auditoría" section="auditoria" active={activeSection} setActive={setActiveSection} />
-          <SidebarButton icon={Stethoscope} label="Especialidades" section="especialidades" active={activeSection} setActive={setActiveSection} />
+          <SidebarButton
+            icon={Home}
+            label="Inicio"
+            section="inicio"
+            active={activeSection}
+            setActive={setActiveSection}
+          />
+          <SidebarButton
+            icon={Users}
+            label="Gestión de Usuarios"
+            section="usuarios"
+            active={activeSection}
+            setActive={setActiveSection}
+          />
+          <SidebarButton
+            icon={UserCog}
+            label="Médicos"
+            section="medicos"
+            active={activeSection}
+            setActive={setActiveSection}
+          />
+          <SidebarButton
+            icon={User}
+            label="Pacientes"
+            section="pacientes"
+            active={activeSection}
+            setActive={setActiveSection}
+          />
+          <SidebarButton
+            icon={Users}
+            label="Enfermeros"
+            section="enfermeros"
+            active={activeSection}
+            setActive={setActiveSection}
+          />
+          <SidebarButton
+            icon={Users}
+            label="Recepcionistas"
+            section="recepcionistas"
+            active={activeSection}
+            setActive={setActiveSection}
+          />
+          <SidebarButton
+            icon={BedDouble}
+            label="Infraestructura"
+            section="infraestructura"
+            active={activeSection}
+            setActive={setActiveSection}
+          />
+          <SidebarButton
+            icon={Box}
+            label="Productos"
+            section="productos"
+            active={activeSection}
+            setActive={setActiveSection}
+          />
+          <SidebarButton
+            icon={Truck}
+            label="Stock Lotes"
+            section="stock-lotes"
+            active={activeSection}
+            setActive={setActiveSection}
+          />
+          <SidebarButton
+            icon={Archive}
+            label="Prestaciones y Precios"
+            section="prestaciones"
+            active={activeSection}
+            setActive={setActiveSection}
+          />
+          <SidebarButton
+            icon={Receipt}
+            label="Facturación"
+            section="facturacion"
+            active={activeSection}
+            setActive={setActiveSection}
+          />
+          <SidebarButton
+            icon={BarChart2}
+            label="Reportes"
+            section="reportes"
+            active={activeSection}
+            setActive={setActiveSection}
+          />
+          <SidebarButton
+            icon={ClipboardList}
+            label="Auditoría"
+            section="auditoria"
+            active={activeSection}
+            setActive={setActiveSection}
+          />
+          <SidebarButton
+            icon={Stethoscope}
+            label="Especialidades"
+            section="especialidades"
+            active={activeSection}
+            setActive={setActiveSection}
+          />
         </nav>
 
         <div className="p-4 border-t border-gray-200">
@@ -113,16 +217,22 @@ export default function AdminHospitalDashboard() {
       <div className="flex-1 flex flex-col">
         <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-gray-700">Hola, <span className="font-semibold">{adminName}</span></span>
+            <span className="text-gray-700">
+              Hola, <span className="font-semibold">{adminName}</span>
+            </span>
           </div>
           <div className="flex items-center gap-3">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><Bell className="w-5 h-5 text-gray-600" /></button>
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><RefreshCw className="w-5 h-5 text-gray-600" /></button>
+            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <Bell className="w-5 h-5 text-gray-600" />
+            </button>
+            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <RefreshCw className="w-5 h-5 text-gray-600" />
+            </button>
           </div>
         </header>
 
         <main className="flex-1 p-8 overflow-y-auto">{renderContent()}</main>
       </div>
     </div>
-  )
+  );
 }

@@ -1,47 +1,67 @@
-﻿import { useState } from "react"
-import { Toaster } from 'react-hot-toast'
+﻿import { useState } from "react";
+import { Toaster } from "react-hot-toast";
 
 // Importar componentes
-import { Sidebar } from "./components/Sidebar"
-import { Header } from "./components/Header"
+import { Sidebar } from "./components/Sidebar";
+import { Header } from "./components/Header";
 
 // Importar secciones
-import { InicioContent } from "./sections/InicioContent"
-import { BuscarMedicosContent } from "./sections/BuscarMedicosContent"
-import { ConsultasContent } from "./sections/ConsultasContent"
-import { RecetasContent } from "./sections/RecetasContent"
-import { EstudiosContent } from "./sections/EstudiosContent"
-import { CuentaContent } from "./sections/CuentaContent"
-import { FacturacionContent } from "./sections/FacturacionContent"
+import { InicioContent } from "./sections/InicioContent";
+import { BuscarMedicosContent } from "./sections/BuscarMedicosContent";
+import { ConsultasContent } from "./sections/ConsultasContent";
+import { RecetasContent } from "./sections/RecetasContent";
+import { EstudiosContent } from "./sections/EstudiosContent";
+import { CirugiasContent } from "./sections/CirugiasContent";
+import { CuentaContent } from "./sections/CuentaContent";
+import { FacturacionContent } from "./sections/FacturacionContent";
 
 export default function PacienteDashboard() {
-  const [activeSection, setActiveSection] = useState("inicio")
+  const [activeSection, setActiveSection] = useState("inicio");
 
   const renderContent = () => {
     switch (activeSection) {
       case "inicio":
-        return <InicioContent setActiveSection={setActiveSection} key={activeSection} />
+        return (
+          <InicioContent
+            setActiveSection={setActiveSection}
+            key={activeSection}
+          />
+        );
       case "buscar-medicos":
-        return <BuscarMedicosContent onTurnoReservado={() => setActiveSection('inicio')} />
+        return (
+          <BuscarMedicosContent
+            onTurnoReservado={() => setActiveSection("inicio")}
+          />
+        );
       case "historia-clinica":
-        return <ConsultasContent />
+        return <ConsultasContent />;
       case "recetas":
-        return <RecetasContent />
+        return <RecetasContent />;
       case "estudios":
-        return <EstudiosContent />
+        return <EstudiosContent />;
+      case "cirugias":
+        return <CirugiasContent />;
       case "cuenta":
-        return <CuentaContent />
+        return <CuentaContent />;
       case "facturacion":
-        return <FacturacionContent />
+        return <FacturacionContent />;
       default:
-        return <InicioContent setActiveSection={setActiveSection} key={activeSection} />
+        return (
+          <InicioContent
+            setActiveSection={setActiveSection}
+            key={activeSection}
+          />
+        );
     }
-  }
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Toaster position="top-right" />
-      <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
+      <Sidebar
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+      />
       <div className="flex-1 flex flex-col">
         <Header />
         <main className="flex-1 p-8 overflow-y-auto">{renderContent()}</main>

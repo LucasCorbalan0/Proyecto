@@ -101,7 +101,8 @@ export function AgendaContent() {
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 mb-1">
-                    Hora: <span className="font-medium">{turno.hora}</span>
+                    Hora:{" "}
+                    <span className="font-medium">{turno.hora_inicio}</span>
                   </p>
                   <p className="text-sm text-gray-600">
                     DNI: <span className="font-medium">{turno.dni}</span>

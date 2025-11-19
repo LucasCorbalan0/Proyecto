@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Eye, Trash2 } from "lucide-react";
+import { Plus, Eye, Trash2, Search, X, Loader } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../../hooks/useAuth";
 import apiClient from "../../services/apiClient";
@@ -7,12 +7,19 @@ import apiClient from "../../services/apiClient";
 export function CirugiasContent() {
   const { user } = useAuth();
   const [cirugias, setCirugias] = useState([]);
+  const [pacientes, setPacientes] = useState([]);
+  const [filteredPacientes, setFilteredPacientes] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedCirugia, setSelectedCirugia] = useState(null);
   const [quirofanos, setQuirofanos] = useState([]);
+  const [searchPaciente, setSearchPaciente] = useState("");
+  const [showPacienteDropdown, setShowPacienteDropdown] = useState(false);
+  const [pacienteHistoria, setPacienteHistoria] = useState(null);
+  const [loadingHistoria, setLoadingHistoria] = useState(false);
   const [formData, setFormData] = useState({
     id_paciente: "",
+    paciente_nombre: "",
     id_quirofano: "",
     fecha_programada: "",
     hora: "",
@@ -23,7 +30,18 @@ export function CirugiasContent() {
   useEffect(() => {
     loadCirugias();
     loadQuirofanos();
+    loadPacientes();
   }, []);
+
+  const loadPacientes = async () => {
+    try {
+      const response = await apiClient.get("/pacientes");
+      const data = response.data?.data || response.data || [];
+      setPacientes(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error cargando pacientes:", error);
+    }
+  };
 
   const loadCirugias = async () => {
     try {
@@ -55,6 +73,56 @@ export function CirugiasContent() {
     }
   };
 
+  const handleSearchPaciente = (value) => {
+    setSearchPaciente(value);
+
+    if (!value.trim()) {
+      setFilteredPacientes([]);
+      setShowPacienteDropdown(false);
+      return;
+    }
+
+    const filtered = pacientes.filter((p) => {
+      const apellido = p.apellido || p.apellidos || "";
+      const fullName = `${p.nombre} ${apellido}`.toLowerCase();
+      const dni = p.dni?.toLowerCase() || "";
+      const searchLower = value.toLowerCase();
+      return fullName.includes(searchLower) || dni.includes(searchLower);
+    });
+
+    setFilteredPacientes(filtered);
+    setShowPacienteDropdown(filtered.length > 0);
+  };
+
+  const handleSelectPaciente = (paciente) => {
+    const apellido = paciente.apellido || paciente.apellidos || "";
+    setFormData((prev) => ({
+      ...prev,
+      id_paciente: paciente.id_paciente,
+      paciente_nombre: `${paciente.nombre} ${apellido}`,
+    }));
+    setSearchPaciente(`${paciente.nombre} ${apellido}`);
+    setShowPacienteDropdown(false);
+
+    // Load historia clínica
+    loadPacienteHistoria(paciente.id_paciente);
+  };
+
+  const loadPacienteHistoria = async (id_paciente) => {
+    try {
+      setLoadingHistoria(true);
+      const response = await apiClient.get(
+        `/medicos/paciente/${id_paciente}/historial-clinico`
+      );
+      setPacienteHistoria(response.data?.data || response.data);
+    } catch (error) {
+      console.error("Error cargando historia clínica:", error);
+      setPacienteHistoria(null);
+    } finally {
+      setLoadingHistoria(false);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -73,6 +141,16 @@ export function CirugiasContent() {
       return;
     }
 
+    // Validar que la fecha no sea en el pasado
+    const fechaSeleccionada = new Date(formData.fecha_programada);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    if (fechaSeleccionada < hoy) {
+      toast.error("La fecha no puede ser en el pasado");
+      return;
+    }
+
     try {
       await apiClient.post(`/medicos/${user?.id_medico}/cirugias`, {
         id_paciente: parseInt(formData.id_paciente),
@@ -85,8 +163,10 @@ export function CirugiasContent() {
 
       toast.success("Cirugía programada");
       setShowModal(false);
+      setSearchPaciente("");
       setFormData({
         id_paciente: "",
+        paciente_nombre: "",
         id_quirofano: "",
         fecha_programada: "",
         hora: "",
@@ -138,8 +218,11 @@ export function CirugiasContent() {
         <button
           onClick={() => {
             setSelectedCirugia(null);
+            setSearchPaciente("");
+            setShowPacienteDropdown(false);
             setFormData({
               id_paciente: "",
+              paciente_nombre: "",
               id_quirofano: "",
               fecha_programada: "",
               hora: "",
@@ -256,20 +339,116 @@ export function CirugiasContent() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
+              {/* Búsqueda de Paciente */}
+              <div className="relative">
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
                   Paciente *
                 </label>
-                <input
-                  type="number"
-                  name="id_paciente"
-                  value={formData.id_paciente}
-                  onChange={handleInputChange}
-                  placeholder="ID del paciente"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchPaciente}
+                    onChange={(e) => handleSearchPaciente(e.target.value)}
+                    onFocus={() =>
+                      searchPaciente && setShowPacienteDropdown(true)
+                    }
+                    placeholder="Buscar por nombre o DNI..."
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Dropdown de Pacientes */}
+                {showPacienteDropdown && filteredPacientes.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                    {filteredPacientes.map((paciente) => (
+                      <button
+                        key={paciente.id_paciente}
+                        type="button"
+                        onClick={() => handleSelectPaciente(paciente)}
+                        className="w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0"
+                      >
+                        <p className="font-medium text-gray-900">
+                          {paciente.nombre}{" "}
+                          {paciente.apellido || paciente.apellidos || ""}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          DNI: {paciente.dni} • ID: {paciente.id_paciente}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {searchPaciente &&
+                  showPacienteDropdown &&
+                  filteredPacientes.length === 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10 p-3 text-center text-gray-600">
+                      No se encontraron pacientes
+                    </div>
+                  )}
               </div>
+
+              {formData.id_paciente && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    <span className="font-semibold">
+                      Paciente seleccionado:
+                    </span>{" "}
+                    {formData.paciente_nombre}
+                  </p>
+                </div>
+              )}
+
+              {/* Historia Clínica Info */}
+              {formData.id_paciente && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  {loadingHistoria ? (
+                    <div className="flex items-center justify-center gap-2 text-amber-700">
+                      <Loader className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">
+                        Cargando historia clínica...
+                      </span>
+                    </div>
+                  ) : pacienteHistoria ? (
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-amber-900 text-sm">
+                        Información Médica
+                      </h4>
+                      {pacienteHistoria.tipo_sangre && (
+                        <p className="text-xs text-amber-800">
+                          <span className="font-medium">Tipo de Sangre:</span>{" "}
+                          {pacienteHistoria.tipo_sangre}{" "}
+                          {pacienteHistoria.factor_rh}
+                        </p>
+                      )}
+                      {pacienteHistoria.alergias_conocidas && (
+                        <p className="text-xs text-red-700 font-medium">
+                          ⚠️ Alergias: {pacienteHistoria.alergias_conocidas}
+                        </p>
+                      )}
+                      {pacienteHistoria.comorbilidades_cronicas && (
+                        <p className="text-xs text-amber-800">
+                          <span className="font-medium">Comorbilidades:</span>{" "}
+                          {pacienteHistoria.comorbilidades_cronicas}
+                        </p>
+                      )}
+                      {pacienteHistoria.antecedentes_quirurgicos && (
+                        <p className="text-xs text-amber-800">
+                          <span className="font-medium">
+                            Antecedentes Quirúrgicos:
+                          </span>{" "}
+                          {pacienteHistoria.antecedentes_quirurgicos}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-amber-700">
+                      Sin información clínica registrada
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
@@ -315,6 +494,7 @@ export function CirugiasContent() {
                   name="fecha_programada"
                   value={formData.fecha_programada}
                   onChange={handleInputChange}
+                  min={new Date().toISOString().split("T")[0]}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />

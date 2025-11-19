@@ -98,25 +98,13 @@ export function InicioContent({ setActive }) {
         <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Disponibilidad</p>
-              <p
-                className={`text-sm font-bold ${
-                  stats.disponibilidadActiva ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {stats.disponibilidadActiva ? "Activa" : "Inactiva"}
+              <p className="text-sm text-gray-600 mb-1">Estudios solicitados</p>
+              <p className="text-3xl font-bold text-gray-900">
+                {stats.estudiosSolicitados || 0}
               </p>
             </div>
-            <div
-              className={`p-3 rounded-lg ${
-                stats.disponibilidadActiva ? "bg-green-100" : "bg-red-100"
-              }`}
-            >
-              <Clock
-                className={`w-6 h-6 ${
-                  stats.disponibilidadActiva ? "text-green-600" : "text-red-600"
-                }`}
-              />
+            <div className="p-3 bg-purple-100 rounded-lg">
+              <FileText className="w-6 h-6 text-purple-600" />
             </div>
           </div>
         </div>

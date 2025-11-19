@@ -54,6 +54,22 @@ export function DisponibilidadContent() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validar que la fecha no sea en el pasado
+    const fechaSeleccionada = new Date(formData.fecha);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    if (fechaSeleccionada < hoy && !editingId) {
+      toast.error("La fecha no puede ser en el pasado");
+      return;
+    }
+
+    // Validar que hora_fin sea después de hora_inicio
+    if (formData.hora_fin <= formData.hora_inicio) {
+      toast.error("La hora de fin debe ser después de la hora de inicio");
+      return;
+    }
+
     try {
       const url = editingId
         ? `/medicos/${user?.id_medico}/disponibilidad/${editingId}`
@@ -236,6 +252,7 @@ export function DisponibilidadContent() {
                   name="fecha"
                   value={formData.fecha}
                   onChange={handleInputChange}
+                  min={new Date().toISOString().split("T")[0]}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

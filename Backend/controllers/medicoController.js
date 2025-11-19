@@ -396,6 +396,39 @@ const obtenerTurnosEnEspera = asyncHandler(async (req, res) => {
   });
 });
 
+// Marcar turno como atendido
+const marcarTurnoAtendido = asyncHandler(async (req, res) => {
+  const { id_medico, id_turno } = req.params;
+
+  // Verificar que el turno pertenece al médico
+  const turno = await execute(
+    `SELECT id_turno FROM turnos WHERE id_turno = ? AND id_medico = ?`,
+    [id_turno, id_medico]
+  );
+
+  if (turno.length === 0) {
+    res.status(404);
+    throw new Error("Turno no encontrado");
+  }
+
+  // Actualizar estado del turno a "Atendido"
+  const result = await execute(
+    `UPDATE turnos SET estado = 'Atendido' WHERE id_turno = ?`,
+    [id_turno]
+  );
+
+  if (result.affectedRows === 0) {
+    res.status(400);
+    throw new Error("No se pudo actualizar el turno");
+  }
+
+  res.json({
+    success: true,
+    message: "Turno marcado como atendido",
+    data: { id_turno },
+  });
+});
+
 // Obtener consultas del médico
 const obtenerConsultas = asyncHandler(async (req, res) => {
   const { id_medico } = req.params;
@@ -572,7 +605,26 @@ const obtenerRecetas = asyncHandler(async (req, res) => {
 // Crear receta
 const crearReceta = asyncHandler(async (req, res) => {
   const { id_medico } = req.params;
-  const { id_consulta, medicamentos } = req.body;
+  let { id_consulta, id_paciente, medicamentos } = req.body;
+
+  // Si viene id_paciente pero no id_consulta, buscar la última consulta
+  if (!id_consulta && id_paciente) {
+    const consultaReciente = await execute(
+      `SELECT id_consulta FROM consultas 
+       WHERE id_historia IN (
+         SELECT id_historia FROM historiasclinicas WHERE id_paciente = ?
+       )
+       ORDER BY fecha_consulta DESC LIMIT 1`,
+      [id_paciente]
+    );
+
+    if (consultaReciente.length > 0) {
+      id_consulta = consultaReciente[0].id_consulta;
+    } else {
+      res.status(400);
+      throw new Error("No se encontró consulta reciente para este paciente");
+    }
+  }
 
   if (!id_consulta || !medicamentos || medicamentos.length === 0) {
     res.status(400);
@@ -589,14 +641,20 @@ const crearReceta = asyncHandler(async (req, res) => {
 
   const id_receta = receta.insertId;
 
-  // Insertar medicamentos
+  // Insertar medicamentos en recetas_detalle
   for (const med of medicamentos) {
     await execute(
       `
-            INSERT INTO recetas_detalle (id_receta, id_medicamento, dosis, duracion_dias)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO recetas_detalle (id_receta, id_producto, cantidad, dosis, frecuencia)
+            VALUES (?, ?, ?, ?, ?)
         `,
-      [id_receta, med.id_medicamento, med.dosis, med.duracion_dias]
+      [
+        id_receta,
+        med.id_producto,
+        med.cantidad || 1,
+        med.dosis,
+        med.frecuencia || "",
+      ]
     );
   }
 
@@ -615,14 +673,15 @@ const obtenerDetallesReceta = asyncHandler(async (req, res) => {
     `
         SELECT 
             rd.id_receta_detalle,
-            rd.id_medicamento,
-            m.nombre as medicamento,
-            m.descripcion,
-            m.tipo,
+            rd.id_producto,
+            pr.nombre as medicamento,
+            pr.descripcion,
+            pr.tipo_producto,
+            rd.cantidad,
             rd.dosis,
-            rd.duracion_dias
+            rd.frecuencia
         FROM recetas_detalle rd
-        INNER JOIN medicamentos m ON rd.id_medicamento = m.id_medicamento
+        INNER JOIN productos pr ON rd.id_producto = pr.id_producto
         WHERE rd.id_receta = ?
     `,
     [id_receta]
@@ -637,9 +696,10 @@ const obtenerDetallesReceta = asyncHandler(async (req, res) => {
 // Obtener medicamentos disponibles
 const obtenerMedicamentos = asyncHandler(async (req, res) => {
   const medicamentos = await execute(`
-        SELECT id_medicamento, nombre_comercial, principio_activo, presentacion
-        FROM medicamentos
-        ORDER BY nombre_comercial
+        SELECT id_producto, nombre, descripcion, tipo_producto
+        FROM productos
+        WHERE tipo_producto = 'Medicamento'
+        ORDER BY nombre
     `);
 
   res.json({
@@ -652,56 +712,91 @@ const obtenerMedicamentos = asyncHandler(async (req, res) => {
 const obtenerEstudios = asyncHandler(async (req, res) => {
   const { id_medico } = req.params;
 
-  const estudios = await execute(
-    `
-        SELECT 
-            e.id_estudio,
-            e.fecha_solicitud,
-            e.estado,
-            e.tipo_estudio,
-            e.fecha_resultado,
-            p.id_persona,
-            p.nombre as nombre_paciente,
-            p.apellido as apellido_paciente,
-            pac.id_paciente
-        FROM estudiosmedicos e
-        INNER JOIN pacientes pac ON e.id_paciente = pac.id_paciente
-        INNER JOIN personas p ON pac.id_persona = p.id_persona
-        WHERE e.id_medico = ?
-        ORDER BY e.fecha_solicitud DESC
-    `,
-    [id_medico]
-  );
+  try {
+    const estudios = await execute(
+      `
+          SELECT 
+              e.id_estudio,
+              e.fecha_solicitud,
+              e.estado,
+              e.tipo_estudio,
+              IFNULL(e.descripcion, '') as descripcion,
+              IFNULL(e.urgencia, 'Normal') as urgencia,
+              e.fecha_resultado,
+              p.id_persona,
+              p.nombre as nombre_paciente,
+              p.apellido as apellido_paciente,
+              p.dni,
+              pac.id_paciente
+          FROM estudiosmedicos e
+          INNER JOIN pacientes pac ON e.id_paciente = pac.id_paciente
+          INNER JOIN personas p ON pac.id_persona = p.id_persona
+          WHERE e.id_medico = ?
+          ORDER BY e.fecha_solicitud DESC
+      `,
+      [id_medico]
+    );
 
-  res.json({
-    success: true,
-    data: estudios,
-  });
+    res.json({
+      success: true,
+      data: estudios,
+    });
+  } catch (error) {
+    console.error("Error en obtenerEstudios:", error);
+    throw error;
+  }
 });
 
 // Solicitar estudio
 const solicitarEstudio = asyncHandler(async (req, res) => {
   const { id_medico } = req.params;
-  const { id_paciente, tipo_estudio } = req.body;
+  const { id_paciente, tipo_estudio, descripcion, urgencia } = req.body;
 
   if (!id_paciente || !tipo_estudio) {
     res.status(400);
     throw new Error("id_paciente y tipo_estudio son requeridos");
   }
 
-  const resultado = await execute(
-    `
-        INSERT INTO estudiosmedicos (id_medico, id_paciente, tipo_estudio, fecha_solicitud, estado)
-        VALUES (?, ?, ?, NOW(), 'Pendiente')
-    `,
-    [id_medico, id_paciente, tipo_estudio]
-  );
+  try {
+    const resultado = await execute(
+      `
+          INSERT INTO estudiosmedicos (id_medico, id_paciente, tipo_estudio, descripcion, urgencia, fecha_solicitud, estado)
+          VALUES (?, ?, ?, ?, ?, NOW(), 'Pendiente')
+      `,
+      [
+        id_medico,
+        id_paciente,
+        tipo_estudio,
+        descripcion || null,
+        urgencia || "Normal",
+      ]
+    );
 
-  res.status(201).json({
-    success: true,
-    mensaje: "Estudio solicitado exitosamente",
-    id_estudio: resultado.insertId,
-  });
+    res.status(201).json({
+      success: true,
+      mensaje: "Estudio solicitado exitosamente",
+      id_estudio: resultado.insertId,
+    });
+  } catch (error) {
+    // Si falla, intenta sin las columnas descripcion y urgencia
+    if (error.message && error.message.includes("Unknown column")) {
+      const resultado = await execute(
+        `
+            INSERT INTO estudiosmedicos (id_medico, id_paciente, tipo_estudio, fecha_solicitud, estado)
+            VALUES (?, ?, ?, NOW(), 'Pendiente')
+        `,
+        [id_medico, id_paciente, tipo_estudio]
+      );
+
+      res.status(201).json({
+        success: true,
+        mensaje: "Estudio solicitado exitosamente",
+        id_estudio: resultado.insertId,
+      });
+    } else {
+      throw error;
+    }
+  }
 });
 
 // Obtener cirugías del médico
@@ -967,6 +1062,7 @@ module.exports = {
   eliminarDisponibilidad,
   obtenerEstadisticas,
   obtenerTurnosEnEspera,
+  marcarTurnoAtendido,
   obtenerConsultas,
   crearConsulta,
   actualizarConsulta,

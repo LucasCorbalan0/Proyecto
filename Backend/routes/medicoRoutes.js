@@ -27,6 +27,13 @@ router.get(
   medicoController.obtenerTurnosEnEspera
 );
 
+// Marcar turno como atendido
+router.put(
+  "/:id_medico/turnos/:id_turno/atender",
+  protect,
+  medicoController.marcarTurnoAtendido
+);
+
 /* =====================================================
    ⏰ RUTAS DISPONIBILIDAD DE MÉDICOS
 ===================================================== */

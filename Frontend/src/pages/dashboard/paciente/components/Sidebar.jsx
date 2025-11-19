@@ -3,11 +3,12 @@ import {
   FileText,
   Pill,
   FlaskConical,
+  Activity,
   User,
   Receipt,
   LogOut,
   Stethoscope,
-} from "lucide-react"
+} from "lucide-react";
 
 export function Sidebar({ activeSection, setActiveSection }) {
   const menuItems = [
@@ -16,6 +17,7 @@ export function Sidebar({ activeSection, setActiveSection }) {
     { id: "historia-clinica", icon: FileText, label: "Mi Historia Clínica" },
     { id: "recetas", icon: Pill, label: "Recetas" },
     { id: "estudios", icon: FlaskConical, label: "Estudios" },
+    { id: "cirugias", icon: Activity, label: "Mis Cirugías" },
     { id: "cuenta", icon: User, label: "Mi Cuenta" },
     { id: "facturacion", icon: Receipt, label: "Facturación y Pagos" },
   ];
@@ -29,7 +31,9 @@ export function Sidebar({ activeSection, setActiveSection }) {
             <div className="w-5 h-1 bg-white rotate-90"></div>
             <div className="w-1 h-5 bg-white -ml-3"></div>
           </div>
-          <h2 className="text-lg font-semibold text-gray-900">MediCare Clinic</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            MediCare Clinic
+          </h2>
         </div>
       </div>
 

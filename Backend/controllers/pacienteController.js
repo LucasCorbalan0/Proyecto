@@ -56,9 +56,6 @@ const actualizarHistoriaClinica = asyncHandler(async (req, res) => {
     contacto_emergencia_telefono,
   } = req.body;
 
-  console.log("PUT Historia Clínica - id_paciente:", id_paciente);
-  console.log("Datos recibidos:", req.body);
-
   if (!id_paciente || isNaN(id_paciente)) {
     res.status(400);
     throw new Error("ID de paciente inválido");
@@ -70,10 +67,7 @@ const actualizarHistoriaClinica = asyncHandler(async (req, res) => {
     [id_paciente]
   );
 
-  console.log("Historia existente:", existente);
-
   if (existente.length === 0) {
-    console.log("Creando nueva historia clínica...");
     // Insertar nueva historia
     const resultado = await execute(
       `
@@ -103,21 +97,15 @@ const actualizarHistoriaClinica = asyncHandler(async (req, res) => {
       ]
     );
 
-    console.log("Resultado INSERT:", resultado);
-
     const nueva = await execute(
       "SELECT * FROM historiasclinicas WHERE id_historia = ?",
       [resultado.insertId]
     );
 
-    console.log("Nueva historia retornada:", nueva);
-
     return res.status(201).json({ success: true, data: nueva[0] });
   }
 
   // Actualizar historia existente
-  console.log("Actualizando historia existente para id_paciente:", id_paciente);
-
   const updateResult = await execute(
     `
         UPDATE historiasclinicas SET
@@ -144,14 +132,10 @@ const actualizarHistoriaClinica = asyncHandler(async (req, res) => {
     ]
   );
 
-  console.log("Resultado UPDATE:", updateResult);
-
   const actualizado = await execute(
     "SELECT * FROM historiasclinicas WHERE id_paciente = ?",
     [id_paciente]
   );
-
-  console.log("Historia actualizada retornada:", actualizado);
 
   res.json({ success: true, data: actualizado[0] });
 });
@@ -889,7 +873,63 @@ const reservarTurno = asyncHandler(async (req, res) => {
   });
 });
 
+// Obtener lista de todos los pacientes
+const getPacientes = asyncHandler(async (req, res) => {
+  const rows = await execute(`
+    SELECT 
+      pac.id_paciente,
+      p.nombre,
+      p.apellido,
+      p.dni,
+      p.email,
+      p.telefono
+    FROM pacientes pac
+    INNER JOIN personas p ON pac.id_persona = p.id_persona
+    ORDER BY p.nombre ASC
+  `);
+
+  res.json({
+    success: true,
+    data: rows || [],
+  });
+});
+
 // Exportar todas las funciones del controlador
+// Obtener cirugías del paciente
+const getCirugias = asyncHandler(async (req, res) => {
+  const { id_paciente } = req.params;
+
+  const cirugias = await execute(
+    `
+        SELECT 
+            c.id_cirugia,
+            c.fecha,
+            c.hora_inicio,
+            c.duracion_estimada,
+            c.tipo_cirugia,
+            c.diagnostico,
+            c.estado,
+            CONCAT(p.nombre, ' ', p.apellido) as nombre_medico,
+            e.nombre as especialidad,
+            q.numero_quirofano,
+            q.piso
+        FROM cirugias c
+        INNER JOIN medicos m ON c.id_medico = m.id_medico
+        INNER JOIN personas p ON m.id_persona = p.id_persona
+        INNER JOIN especialidades e ON m.id_especialidad = e.id_especialidad
+        LEFT JOIN quirofanos q ON c.id_quirofano = q.id_quirofano
+        WHERE c.id_paciente = ?
+        ORDER BY c.fecha DESC
+    `,
+    [id_paciente]
+  );
+
+  res.json({
+    success: true,
+    data: cirugias,
+  });
+});
+
 module.exports = {
   getDashboardResumen, // Dashboard del paciente
   cancelarTurno, // Gestión de turnos
@@ -901,9 +941,11 @@ module.exports = {
   getRecetas, // Recetas médicas
   getConsultas, // Consultas del paciente
   getFacturas, // Facturas del paciente
+  getCirugias, // Cirugías del paciente
   // Endpoints para buscar médicos
   getEspecialidades,
   getMedicos,
   getDisponibilidadMedicos,
   reservarTurno,
+  getPacientes, // Obtener lista de pacientes
 };
